@@ -1,0 +1,26 @@
+Changed database context to 'WebsiteQuanLyCuaHangSachCu'.
+PASS: Negative book price
+PASS: Wrong book for receipt item
+PASS: Duplicate active reservation
+PASS: Reservation not in order
+PASS: Expired reservation range
+PASS: Invalid order total
+PASS: Invalid line total
+PASS: Return to wrong store
+PASS: Return item from another order
+PASS: Duplicate accepted return across requests
+PASS: Refund linked to wrong order
+PASS: Duplicate payment request
+PASS: Media with no owner
+PASS: Media with two owners
+PASS: Duplicate primary image
+PASS: Duplicate default address
+PASS: Duplicate active cart
+PASS: Transfer to same store
+PASS: Movement references wrong copy
+PASS: Case-insensitive unique username
+PASS: Protect referenced catalog record
+PASS: Invalid refresh expiration
+PASS: release and reserve the same copy again
+PASS: resale history permits the same copy in another order
+All 24 integrity tests passed; every fixture row rolled back.

@@ -1,0 +1,268 @@
+{
+  "generatedAt": "2026-10-14T01:15:51.153Z",
+  "seedVersion": "v1",
+  "newRows": {
+    "Users": 16,
+    "UserRoles": 8,
+    "Stores": 5,
+    "StaffStoreAssignments": 8,
+    "CustomerAddresses": 5,
+    "Suppliers": 4,
+    "PurchaseReceipts": 5,
+    "PurchaseReceiptItems": 253,
+    "BookCopies": 249,
+    "InventoryMovements": 282,
+    "Orders": 27,
+    "OrderStatusHistory": 94,
+    "OrderItems": 30,
+    "Payments": 27,
+    "StockReservations": 23,
+    "SalesReturns": 9,
+    "SalesReturnItems": 9,
+    "Refunds": 8,
+    "StockTransfers": 5,
+    "StockTransferItems": 7,
+    "Stocktakes": 5,
+    "StocktakeItems": 10,
+    "Carts": 7,
+    "CartItems": 7,
+    "MediaAssets": 95,
+    "RefreshTokens": 5,
+    "Notifications": 6,
+    "AuditLogs": 6
+  },
+  "totalNewRows": 1215,
+  "checks": 85,
+  "accounts": [
+    {
+      "username": "admin",
+      "status": "ACTIVE"
+    },
+    {
+      "username": "manager",
+      "status": "ACTIVE"
+    },
+    {
+      "username": "manager2",
+      "status": "ACTIVE"
+    },
+    {
+      "username": "manager3",
+      "status": "ACTIVE"
+    },
+    {
+      "username": "staff",
+      "status": "ACTIVE"
+    },
+    {
+      "username": "staff2",
+      "status": "ACTIVE"
+    },
+    {
+      "username": "staff3",
+      "status": "ACTIVE"
+    },
+    {
+      "username": "staff4",
+      "status": "ACTIVE"
+    },
+    {
+      "username": "staff5",
+      "status": "LOCKED"
+    },
+    {
+      "username": "khang",
+      "status": "ACTIVE"
+    },
+    {
+      "username": "hoang",
+      "status": "ACTIVE"
+    },
+    {
+      "username": "van",
+      "status": "ACTIVE"
+    },
+    {
+      "username": "minh",
+      "status": "LOCKED"
+    },
+    {
+      "username": "linh",
+      "status": "PENDING"
+    },
+    {
+      "username": "nam",
+      "status": "ACTIVE"
+    },
+    {
+      "username": "huy",
+      "status": "ACTIVE"
+    }
+  ],
+  "coverage": {
+    "Users": {
+      "Status": [
+        "ACTIVE",
+        "LOCKED",
+        "PENDING"
+      ]
+    },
+    "Stores": {
+      "Status": [
+        "ACTIVE",
+        "TEMPORARILY_CLOSED",
+        "CLOSED"
+      ]
+    },
+    "StaffStoreAssignments": {
+      "Status": [
+        "ACTIVE",
+        "ENDED"
+      ],
+      "StoreRole": [
+        "MANAGER",
+        "STAFF"
+      ]
+    },
+    "Suppliers": {
+      "Status": [
+        "ACTIVE",
+        "INACTIVE"
+      ],
+      "SupplierType": [
+        "INDIVIDUAL",
+        "ORGANIZATION"
+      ]
+    },
+    "PurchaseReceipts": {
+      "Status": [
+        "DRAFT",
+        "RECEIVED",
+        "CANCELLED"
+      ]
+    },
+    "BookCopies": {
+      "Status": [
+        "AVAILABLE",
+        "RESERVED",
+        "SOLD",
+        "IN_TRANSIT",
+        "DAMAGED",
+        "LOST"
+      ]
+    },
+    "MediaAssets": {
+      "Provider": [
+        "LOCAL",
+        "CLOUDINARY"
+      ]
+    },
+    "StockTransfers": {
+      "Status": [
+        "DRAFT",
+        "APPROVED",
+        "IN_TRANSIT",
+        "RECEIVED",
+        "CANCELLED"
+      ]
+    },
+    "StockTransferItems": {
+      "ReceiptStatus": [
+        "PENDING",
+        "RECEIVED",
+        "MISSING",
+        "DAMAGED"
+      ]
+    },
+    "Stocktakes": {
+      "Status": [
+        "DRAFT",
+        "COUNTING",
+        "FINALIZED",
+        "CANCELLED"
+      ]
+    },
+    "Carts": {
+      "Status": [
+        "ACTIVE",
+        "CHECKED_OUT",
+        "ABANDONED"
+      ]
+    },
+    "Orders": {
+      "Status": [
+        "PENDING",
+        "CONFIRMED",
+        "PROCESSING",
+        "SHIPPED",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "Channel": [
+        "ONLINE",
+        "POS"
+      ]
+    },
+    "StockReservations": {
+      "Status": [
+        "ACTIVE",
+        "CONSUMED",
+        "EXPIRED",
+        "CANCELLED"
+      ]
+    },
+    "Payments": {
+      "Status": [
+        "PENDING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED"
+      ],
+      "Method": [
+        "CASH",
+        "BANK_TRANSFER",
+        "CARD",
+        "E_WALLET",
+        "COD"
+      ]
+    },
+    "SalesReturns": {
+      "Status": [
+        "REQUESTED",
+        "APPROVED",
+        "COMPLETED",
+        "REJECTED",
+        "CANCELLED"
+      ]
+    },
+    "SalesReturnItems": {
+      "Status": [
+        "PENDING",
+        "ACCEPTED",
+        "REJECTED"
+      ],
+      "Resolution": [
+        "RESTOCK",
+        "DAMAGED"
+      ]
+    },
+    "Refunds": {
+      "Status": [
+        "PENDING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED"
+      ]
+    },
+    "InventoryMovements": {
+      "MovementType": [
+        "RECEIPT",
+        "SALE",
+        "TRANSFER_OUT",
+        "TRANSFER_IN",
+        "RETURN",
+        "ADJUSTMENT"
+      ]
+    }
+  }
+}

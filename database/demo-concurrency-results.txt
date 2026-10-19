@@ -1,0 +1,2 @@
+PASS: second connection cannot reserve the same copy while the first transaction holds it.
+PASS: after first transaction rolls back, the second connection can reserve; its insert is also rolled back.

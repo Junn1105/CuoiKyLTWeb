@@ -1,0 +1,296 @@
+[
+  {
+    "id": 1,
+    "name": "Username must not be blank",
+    "sql": "UPDATE dbo.Users SET Username=N' ' WHERE Username='nam';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 2,
+    "name": "User status enum",
+    "sql": "UPDATE dbo.Users SET Status='UNKNOWN' WHERE Username='nam';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 3,
+    "name": "User timestamps ordered",
+    "sql": "UPDATE dbo.Users SET UpdatedAt=DATEADD(day,-1,CreatedAt) WHERE Username='nam';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 4,
+    "name": "Full name NOT NULL",
+    "sql": "UPDATE dbo.Users SET FullName=NULL WHERE Username='nam';",
+    "kind": "NULL"
+  },
+  {
+    "id": 5,
+    "name": "Username maximum length",
+    "sql": "UPDATE dbo.Users SET Username=REPLICATE(N'x',51) WHERE Username='nam';",
+    "kind": "LENGTH"
+  },
+  {
+    "id": 6,
+    "name": "Email uniqueness case insensitive",
+    "sql": "UPDATE dbo.Users SET Email='DEMO.ADMIN@EXAMPLE.INVALID' WHERE Username='nam';",
+    "kind": "UNIQUE"
+  },
+  {
+    "id": 7,
+    "name": "Role code uniqueness",
+    "sql": "INSERT dbo.Roles(RoleCode,RoleName) VALUES('ADMIN',N'Duplicate');",
+    "kind": "UNIQUE"
+  },
+  {
+    "id": 8,
+    "name": "User role pair uniqueness",
+    "sql": "INSERT dbo.UserRoles(UserId,RoleId) SELECT TOP(1) UserId,RoleId FROM dbo.UserRoles;",
+    "kind": "UNIQUE"
+  },
+  {
+    "id": 9,
+    "name": "Store status enum",
+    "sql": "UPDATE dbo.Stores SET Status='UNKNOWN' WHERE StoreCode='DEMO-S4';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 10,
+    "name": "Staff role enum",
+    "sql": "UPDATE dbo.StaffStoreAssignments SET StoreRole='OWNER' WHERE AssignmentId=(SELECT MIN(AssignmentId) FROM dbo.StaffStoreAssignments);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 11,
+    "name": "Staff end must follow start",
+    "sql": "UPDATE dbo.StaffStoreAssignments SET Status='ENDED',EndAt=DATEADD(day,-1,StartAt) WHERE AssignmentId=(SELECT MIN(AssignmentId) FROM dbo.StaffStoreAssignments);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 12,
+    "name": "One active staff assignment per store",
+    "sql": "INSERT dbo.StaffStoreAssignments(UserId,StoreId,StoreRole) SELECT TOP(1) UserId,StoreId,StoreRole FROM dbo.StaffStoreAssignments WHERE Status='ACTIVE';",
+    "kind": "UNIQUE"
+  },
+  {
+    "id": 13,
+    "name": "Condition sort cannot be negative",
+    "sql": "UPDATE dbo.BookConditions SET SortOrder=-1 WHERE ConditionCode='GOOD';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 14,
+    "name": "Supplier type enum",
+    "sql": "UPDATE dbo.Suppliers SET SupplierType='UNKNOWN' WHERE SupplierId=(SELECT MIN(SupplierId) FROM dbo.Suppliers);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 15,
+    "name": "Supplier status enum",
+    "sql": "UPDATE dbo.Suppliers SET Status='UNKNOWN' WHERE SupplierId=(SELECT MIN(SupplierId) FROM dbo.Suppliers);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 16,
+    "name": "Receipt cannot have negative total",
+    "sql": "UPDATE dbo.PurchaseReceipts SET TotalAmount=-1 WHERE ReceiptCode='DEMO-IN-1';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 17,
+    "name": "Received receipt requires receipt time",
+    "sql": "UPDATE dbo.PurchaseReceipts SET ReceivedAt=NULL WHERE ReceiptCode='DEMO-IN-1';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 18,
+    "name": "Receipt line quantity positive",
+    "sql": "UPDATE dbo.PurchaseReceiptItems SET Quantity=0 WHERE ReceiptItemId=(SELECT MIN(ReceiptItemId) FROM dbo.PurchaseReceiptItems);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 19,
+    "name": "Receipt line cost nonnegative",
+    "sql": "UPDATE dbo.PurchaseReceiptItems SET UnitCost=-1 WHERE ReceiptItemId=(SELECT MIN(ReceiptItemId) FROM dbo.PurchaseReceiptItems);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 20,
+    "name": "Copy version nonnegative",
+    "sql": "UPDATE dbo.BookCopies SET Version=-1 WHERE CopyCode='DEMO-C1-042';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 21,
+    "name": "Copy status enum",
+    "sql": "UPDATE dbo.BookCopies SET Status='UNKNOWN' WHERE CopyCode='DEMO-C1-042';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 22,
+    "name": "Media dimensions positive",
+    "sql": "UPDATE dbo.MediaAssets SET Width=0 WHERE MediaId=(SELECT MIN(MediaId) FROM dbo.MediaAssets);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 23,
+    "name": "Media URL must match provider",
+    "sql": "UPDATE dbo.MediaAssets SET Url='file:///D:/private.jpg' WHERE MediaId=(SELECT MIN(MediaId) FROM dbo.MediaAssets);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 24,
+    "name": "Cloudinary requires public ID",
+    "sql": "UPDATE dbo.MediaAssets SET PublicId=NULL WHERE Provider='CLOUDINARY';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 25,
+    "name": "Transfer timestamps ordered",
+    "sql": "UPDATE dbo.StockTransfers SET ReceivedAt=DATEADD(day,-1,ShippedAt) WHERE TransferCode='DEMO-TRANSFER-RECEIVED';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 26,
+    "name": "Shipped transfer requires approver",
+    "sql": "UPDATE dbo.StockTransfers SET ApprovedBy=NULL WHERE TransferCode='DEMO-TRANSFER-TRANSIT';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 27,
+    "name": "Received transfer item requires condition",
+    "sql": "UPDATE dbo.StockTransferItems SET ReceivedConditionId=NULL WHERE ReceiptStatus='RECEIVED';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 28,
+    "name": "Finalized stocktake requires approver",
+    "sql": "UPDATE dbo.Stocktakes SET ApprovedBy=NULL WHERE StocktakeId=(SELECT MIN(StocktakeId) FROM dbo.Stocktakes WHERE Status='FINALIZED');",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 29,
+    "name": "Present counted copy requires condition",
+    "sql": "UPDATE dbo.StocktakeItems SET ActualConditionId=NULL WHERE StocktakeItemId=(SELECT MIN(StocktakeItemId) FROM dbo.StocktakeItems WHERE ActualPresent=1);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 30,
+    "name": "Cart status enum",
+    "sql": "UPDATE dbo.Carts SET Status='UNKNOWN' WHERE CartId=(SELECT MIN(CartId) FROM dbo.Carts);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 31,
+    "name": "Online order requires customer",
+    "sql": "UPDATE dbo.Orders SET CustomerId=NULL WHERE OrderCode='DEMO-HOLD-ACTIVE';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 32,
+    "name": "POS order requires operator",
+    "sql": "UPDATE dbo.Orders SET CreatedBy=NULL WHERE OrderCode='DEMO-GUEST';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 33,
+    "name": "Discount cannot exceed subtotal",
+    "sql": "UPDATE dbo.Orders SET DiscountAmount=Subtotal+1,TotalAmount=ShippingFee-1 WHERE OrderCode='DEMO-SHIPPING';",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 34,
+    "name": "Order item discount bounded",
+    "sql": "UPDATE dbo.OrderItems SET DiscountAmount=UnitPrice+1,LineTotal=-1 WHERE OrderItemId=(SELECT MIN(OrderItemId) FROM dbo.OrderItems);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 35,
+    "name": "Active hold cannot already be released",
+    "sql": "UPDATE dbo.StockReservations SET ReleasedAt=SYSUTCDATETIME() WHERE ReservationId=(SELECT MIN(ReservationId) FROM dbo.StockReservations WHERE Status='ACTIVE');",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 36,
+    "name": "Payment amount positive",
+    "sql": "UPDATE dbo.Payments SET Amount=0 WHERE PaymentId=(SELECT MIN(PaymentId) FROM dbo.Payments);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 37,
+    "name": "Payment currency VND",
+    "sql": "UPDATE dbo.Payments SET Currency='USD' WHERE PaymentId=(SELECT MIN(PaymentId) FROM dbo.Payments);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 38,
+    "name": "Successful payment requires paid timestamp",
+    "sql": "UPDATE dbo.Payments SET PaidAt=NULL WHERE PaymentId=(SELECT MIN(PaymentId) FROM dbo.Payments WHERE Status='SUCCEEDED');",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 39,
+    "name": "History must change status",
+    "sql": "UPDATE dbo.OrderStatusHistory SET FromStatus=ToStatus WHERE HistoryId=(SELECT MIN(HistoryId) FROM dbo.OrderStatusHistory);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 40,
+    "name": "Approved return requires approval timestamp",
+    "sql": "UPDATE dbo.SalesReturns SET ApprovedAt=NULL WHERE ReturnId=(SELECT MIN(ReturnId) FROM dbo.SalesReturns WHERE Status='APPROVED');",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 41,
+    "name": "Accepted return item requires condition",
+    "sql": "UPDATE dbo.SalesReturnItems SET ReceivedConditionId=NULL WHERE ReturnItemId=(SELECT MIN(ReturnItemId) FROM dbo.SalesReturnItems WHERE Status='ACCEPTED');",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 42,
+    "name": "Refund amount positive",
+    "sql": "UPDATE dbo.Refunds SET Amount=0 WHERE RefundId=(SELECT MIN(RefundId) FROM dbo.Refunds);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 43,
+    "name": "Successful refund requires timestamp",
+    "sql": "UPDATE dbo.Refunds SET RefundedAt=NULL WHERE RefundId=(SELECT MIN(RefundId) FROM dbo.Refunds WHERE Status='SUCCEEDED');",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 44,
+    "name": "Refresh token replacement cannot reference itself",
+    "sql": "UPDATE dbo.RefreshTokens SET ReplacedByTokenId=RefreshTokenId,RevokedAt=SYSUTCDATETIME() WHERE RefreshTokenId=(SELECT MIN(RefreshTokenId) FROM dbo.RefreshTokens);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 45,
+    "name": "Replacement token must stay in same family",
+    "sql": "UPDATE dbo.RefreshTokens SET FamilyId=NEWID() WHERE ReplacedByTokenId IS NOT NULL;",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 46,
+    "name": "Notification read cannot precede creation",
+    "sql": "UPDATE dbo.Notifications SET ReadAt=DATEADD(day,-1,CreatedAt) WHERE NotificationId=(SELECT MIN(NotificationId) FROM dbo.Notifications);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 47,
+    "name": "Notification user must exist",
+    "sql": "UPDATE dbo.Notifications SET UserId=-1 WHERE NotificationId=(SELECT MIN(NotificationId) FROM dbo.Notifications);",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 48,
+    "name": "Receipt movement requires its receipt line",
+    "sql": "UPDATE dbo.InventoryMovements SET ReceiptItemId=NULL WHERE MovementId=(SELECT MIN(MovementId) FROM dbo.InventoryMovements WHERE MovementType='RECEIPT');",
+    "kind": "CONSTRAINT"
+  },
+  {
+    "id": 49,
+    "name": "Inventory operation idempotency",
+    "sql": "UPDATE dbo.InventoryMovements SET OperationKey=(SELECT OperationKey FROM dbo.InventoryMovements WHERE MovementId=(SELECT MIN(MovementId) FROM dbo.InventoryMovements)) WHERE MovementId=(SELECT MAX(MovementId) FROM dbo.InventoryMovements);",
+    "kind": "UNIQUE"
+  }
+]

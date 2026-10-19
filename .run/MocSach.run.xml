@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MocSach - Local SQL Server" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="vn.mocsach.MocSachApplication" />
+    <module name="moc-sach" />
+    <option name="ALTERNATIVE_JRE_PATH" value="D:/IntelliJ IDEA 2026.2.1/jbr" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="INCLUDE_PROVIDED_SCOPE" value="true" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="VM_PARAMETERS" value="--enable-native-access=ALL-UNNAMED -Djava.library.path=&quot;$PROJECT_DIR$/.local/native&quot; -Djava.io.tmpdir=&quot;$PROJECT_DIR$/.local&quot; -Djdk.net.unixdomain.tmpdir=&quot;$PROJECT_DIR$/.local&quot; -Dfile.encoding=UTF-8" />
+    <method v="2"><option name="Make" enabled="true" /></method>
+  </configuration>
+</component>

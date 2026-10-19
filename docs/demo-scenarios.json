@@ -1,0 +1,248 @@
+[
+  {
+    "code": "DEMO-POS-CASH",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "POS-CASH",
+    "copyCodes": [
+      "DEMO-C1-001",
+      "DEMO-C1-002"
+    ]
+  },
+  {
+    "code": "DEMO-PARTIAL-RETURN",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "PARTIAL-RETURN",
+    "copyCodes": [
+      "DEMO-C1-003"
+    ]
+  },
+  {
+    "code": "DEMO-DAMAGED-RETURN",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "DAMAGED-RETURN",
+    "copyCodes": [
+      "DEMO-C1-004"
+    ]
+  },
+  {
+    "code": "DEMO-RETURN-REQUESTED",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "RETURN-REQUESTED",
+    "copyCodes": [
+      "DEMO-C1-005"
+    ]
+  },
+  {
+    "code": "DEMO-RETURN-REJECTED",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "RETURN-REJECTED",
+    "copyCodes": [
+      "DEMO-C1-006"
+    ]
+  },
+  {
+    "code": "DEMO-RETURN-APPROVED",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "RETURN-APPROVED",
+    "copyCodes": [
+      "DEMO-C1-007"
+    ]
+  },
+  {
+    "code": "DEMO-RETURN-CANCELLED",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "RETURN-CANCELLED",
+    "copyCodes": [
+      "DEMO-C1-008"
+    ]
+  },
+  {
+    "code": "DEMO-HOLD-ACTIVE",
+    "kind": "Order",
+    "status": "PENDING",
+    "description": "HOLD-ACTIVE",
+    "copyCodes": [
+      "DEMO-C1-009"
+    ]
+  },
+  {
+    "code": "DEMO-CONFIRMED",
+    "kind": "Order",
+    "status": "CONFIRMED",
+    "description": "CONFIRMED",
+    "copyCodes": [
+      "DEMO-C1-010"
+    ]
+  },
+  {
+    "code": "DEMO-PROCESSING",
+    "kind": "Order",
+    "status": "PROCESSING",
+    "description": "PROCESSING",
+    "copyCodes": [
+      "DEMO-C1-011"
+    ]
+  },
+  {
+    "code": "DEMO-SHIPPED-COD",
+    "kind": "Order",
+    "status": "SHIPPED",
+    "description": "SHIPPED-COD",
+    "copyCodes": [
+      "DEMO-C1-012"
+    ]
+  },
+  {
+    "code": "DEMO-EXPIRED",
+    "kind": "Order",
+    "status": "CANCELLED",
+    "description": "EXPIRED",
+    "copyCodes": [
+      "DEMO-C1-013"
+    ]
+  },
+  {
+    "code": "DEMO-CANCELLED",
+    "kind": "Order",
+    "status": "CANCELLED",
+    "description": "CANCELLED",
+    "copyCodes": [
+      "DEMO-C1-014"
+    ]
+  },
+  {
+    "code": "DEMO-PAYMENT-RETRY",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "PAYMENT-RETRY",
+    "copyCodes": [
+      "DEMO-C1-015"
+    ]
+  },
+  {
+    "code": "DEMO-PAID-CANCELLED",
+    "kind": "Order",
+    "status": "CANCELLED",
+    "description": "PAID-CANCELLED",
+    "copyCodes": [
+      "DEMO-C1-016"
+    ]
+  },
+  {
+    "code": "DEMO-RESALE",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "RESALE",
+    "copyCodes": [
+      "DEMO-C1-003"
+    ]
+  },
+  {
+    "code": "DEMO-GUEST",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "GUEST",
+    "copyCodes": [
+      "DEMO-C1-017"
+    ]
+  },
+  {
+    "code": "DEMO-REFUND-RETRY",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "REFUND-RETRY",
+    "copyCodes": [
+      "DEMO-C1-018",
+      "DEMO-C1-019"
+    ]
+  },
+  {
+    "code": "DEMO-REFUND-CANCELLED-RETRY",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "REFUND-CANCELLED-RETRY",
+    "copyCodes": [
+      "DEMO-C1-020"
+    ]
+  },
+  {
+    "code": "DEMO-FREE",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "FREE",
+    "copyCodes": [
+      "DEMO-C1-021"
+    ]
+  },
+  {
+    "code": "DEMO-HOLD-OVERDUE",
+    "kind": "Order",
+    "status": "PENDING",
+    "description": "HOLD-OVERDUE",
+    "copyCodes": [
+      "DEMO-C1-022"
+    ]
+  },
+  {
+    "code": "DEMO-SHIPPING",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "SHIPPING",
+    "copyCodes": [
+      "DEMO-C1-023"
+    ]
+  },
+  {
+    "code": "DEMO-MULTI-HOLD",
+    "kind": "Order",
+    "status": "PENDING",
+    "description": "MULTI-HOLD",
+    "copyCodes": [
+      "DEMO-C1-024",
+      "DEMO-C1-025"
+    ]
+  },
+  {
+    "code": "DEMO-POS-CANCELLED",
+    "kind": "Order",
+    "status": "CANCELLED",
+    "description": "POS-CANCELLED",
+    "copyCodes": [
+      "DEMO-C1-026"
+    ]
+  },
+  {
+    "code": "DEMO-ZERO-RETURN-QUOTE",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "ZERO-RETURN-QUOTE",
+    "copyCodes": [
+      "DEMO-C1-027"
+    ]
+  },
+  {
+    "code": "DEMO-CANCELLED-REFUND-PENDING",
+    "kind": "Order",
+    "status": "CANCELLED",
+    "description": "CANCELLED-REFUND-PENDING",
+    "copyCodes": [
+      "DEMO-C1-028"
+    ]
+  },
+  {
+    "code": "DEMO-HISTORY-NULLS",
+    "kind": "Order",
+    "status": "COMPLETED",
+    "description": "HISTORY-NULLS",
+    "copyCodes": [
+      "DEMO-C1-029"
+    ]
+  }
+]

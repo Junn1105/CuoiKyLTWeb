@@ -1,0 +1,51 @@
+Changed database context to 'WebsiteQuanLyCuaHangSachCu'.
+PASS: Username must not be blank
+PASS: User status enum
+PASS: User timestamps ordered
+PASS: Full name NOT NULL
+PASS: Username maximum length
+PASS: Email uniqueness case insensitive
+PASS: Role code uniqueness
+PASS: User role pair uniqueness
+PASS: Store status enum
+PASS: Staff role enum
+PASS: Staff end must follow start
+PASS: One active staff assignment per store
+PASS: Condition sort cannot be negative
+PASS: Supplier type enum
+PASS: Supplier status enum
+PASS: Receipt cannot have negative total
+PASS: Received receipt requires receipt time
+PASS: Receipt line quantity positive
+PASS: Receipt line cost nonnegative
+PASS: Copy version nonnegative
+PASS: Copy status enum
+PASS: Media dimensions positive
+PASS: Media URL must match provider
+PASS: Cloudinary requires public ID
+PASS: Transfer timestamps ordered
+PASS: Shipped transfer requires approver
+PASS: Received transfer item requires condition
+PASS: Finalized stocktake requires approver
+PASS: Present counted copy requires condition
+PASS: Cart status enum
+PASS: Online order requires customer
+PASS: POS order requires operator
+PASS: Discount cannot exceed subtotal
+PASS: Order item discount bounded
+PASS: Active hold cannot already be released
+PASS: Payment amount positive
+PASS: Payment currency VND
+PASS: Successful payment requires paid timestamp
+PASS: History must change status
+PASS: Approved return requires approval timestamp
+PASS: Accepted return item requires condition
+PASS: Refund amount positive
+PASS: Successful refund requires timestamp
+PASS: Refresh token replacement cannot reference itself
+PASS: Replacement token must stay in same family
+PASS: Notification read cannot precede creation
+PASS: Notification user must exist
+PASS: Receipt movement requires its receipt line
+PASS: Inventory operation idempotency
+All 49 extended negative tests passed; database data rolled back.

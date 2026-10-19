@@ -1,0 +1,2 @@
+<%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mộc Sách</title><link rel="stylesheet" href="${pageContext.request.contextPath}/css/auth.css"></head><body><main class="welcome-card"><h1>Hãy thử lại nhé.</h1><p>Trang không khả dụng hoặc phiên làm việc đã hết hạn.</p><a class="primary-button" href="${pageContext.request.contextPath}/login">Quay lại đăng nhập →</a></main></body></html>

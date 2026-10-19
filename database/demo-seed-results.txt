@@ -1,0 +1,88 @@
+Changed database context to 'WebsiteQuanLyCuaHangSachCu'.
+PASS: Rows AuditLogs
+PASS: Rows Authors
+PASS: Rows BookAuthors
+PASS: Rows BookConditions
+PASS: Rows BookCopies
+PASS: Rows Books
+PASS: Rows CartItems
+PASS: Rows Carts
+PASS: Rows Categories
+PASS: Rows CustomerAddresses
+PASS: Rows InventoryMovements
+PASS: Rows MediaAssets
+PASS: Rows Notifications
+PASS: Rows OrderItems
+PASS: Rows Orders
+PASS: Rows OrderStatusHistory
+PASS: Rows Payments
+PASS: Rows Publishers
+PASS: Rows PurchaseReceiptItems
+PASS: Rows PurchaseReceipts
+PASS: Rows RefreshTokens
+PASS: Rows Refunds
+PASS: Rows Roles
+PASS: Rows SalesReturnItems
+PASS: Rows SalesReturns
+PASS: Rows StaffStoreAssignments
+PASS: Rows StockReservations
+PASS: Rows StocktakeItems
+PASS: Rows Stocktakes
+PASS: Rows StockTransferItems
+PASS: Rows StockTransfers
+PASS: Rows Stores
+PASS: Rows Suppliers
+PASS: Rows UserRoles
+PASS: Rows Users
+PASS: Coverage Users.Status
+PASS: Coverage Stores.Status
+PASS: Coverage StaffStoreAssignments.Status
+PASS: Coverage StaffStoreAssignments.StoreRole
+PASS: Coverage Suppliers.Status
+PASS: Coverage Suppliers.SupplierType
+PASS: Coverage PurchaseReceipts.Status
+PASS: Coverage BookCopies.Status
+PASS: Coverage MediaAssets.Provider
+PASS: Coverage StockTransfers.Status
+PASS: Coverage StockTransferItems.ReceiptStatus
+PASS: Coverage Stocktakes.Status
+PASS: Coverage Carts.Status
+PASS: Coverage Orders.Status
+PASS: Coverage Orders.Channel
+PASS: Coverage StockReservations.Status
+PASS: Coverage Payments.Status
+PASS: Coverage Payments.Method
+PASS: Coverage SalesReturns.Status
+PASS: Coverage SalesReturnItems.Status
+PASS: Coverage SalesReturnItems.Resolution
+PASS: Coverage Refunds.Status
+PASS: Coverage InventoryMovements.MovementType
+PASS: Receipt totals
+PASS: Received quantities and no stock for drafts
+PASS: Order totals versus lines
+PASS: Successful payments reconcile
+PASS: Refund amounts bounded by successful payments
+PASS: Return line amounts bounded
+PASS: Refunds tied to accepted return value
+PASS: Reserved copies and active reservations agree
+PASS: Last order history matches current status
+PASS: Order history chain and timestamps
+PASS: Transfer receipt state matches copies
+PASS: Receipt movement for every seeded copy
+PASS: Sale movement for each fulfilled order line
+PASS: Return movement for every accepted return line
+PASS: Latest movement and copy disposition
+PASS: Finalized stocktakes fully counted
+PASS: No disabled or untrusted constraints
+PASS: Active and overdue hold fixtures at seed time
+PASS: Token expiry revocation and rotation coverage
+PASS: Read and unread notifications
+PASS: Expired reservations released after expiration
+PASS: Cancelled orders have released holds by cancellation
+PASS: Payment retry follows failed attempt
+PASS: Every catalog title represented at each initial branch
+PASS: Return occurs after sale
+PASS: Empty cart fixture and empty customer history
+PASS: Guest and zero amount order fixtures
+All 85 demo coverage and consistency checks passed.
+DEMO v1 committed.
