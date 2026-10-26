@@ -9,6 +9,7 @@
   <a class="cart-link" href="#stats-section">📊 Thống kê</a>
   <a class="cart-link" href="#orders-section">📦 Quản lý đơn hàng (${stats.totalOrders})</a>
   <a class="cart-link" href="#books-section">📚 Quản lý sách & Giá (${stats.totalBooks})</a>
+  <a class="cart-link" href="${base}/admin/stores" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-weight:700;">🏬 Chuỗi Cửa Hàng & Điều Chuyển Kho →</a>
  </div>
  <div class="header-links"><a href="${base}/home">← Về trang khách hàng</a><shop:notifications/><a href="${base}/account"><c:out value="${displayName}"/></a></div>
 </header>

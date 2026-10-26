@@ -16,12 +16,14 @@ public class AdminController {
  private final UserRepository users;
  private final CartService cart;
  private final NotificationService notifications;
+ private final StoreService storeService;
 
- public AdminController(AdminService admin, UserRepository users, CartService cart, NotificationService notifications) {
+ public AdminController(AdminService admin, UserRepository users, CartService cart, NotificationService notifications, StoreService storeService) {
   this.admin = admin;
   this.users = users;
   this.cart = cart;
   this.notifications = notifications;
+  this.storeService = storeService;
  }
 
  private UserAccount user(Principal p) {
@@ -48,6 +50,10 @@ public class AdminController {
  ) {
   var u = user(principal);
   populateHeader(u, model);
+  var ctx = storeService.getUserStoreContext(u.id);
+  if (!ctx.isAdmin()) {
+   return "redirect:/admin/my-store";
+  }
   model.addAttribute("stats", admin.dashboardStats());
   model.addAttribute("books", admin.listBooksForAdmin(q, category));
   model.addAttribute("orders", admin.listAllOrders(orderStatus));
@@ -64,6 +70,10 @@ public class AdminController {
  public String editBookPage(@PathVariable int id, Principal principal, Model model) {
   var u = user(principal);
   populateHeader(u, model);
+  var ctx = storeService.getUserStoreContext(u.id);
+  if (!ctx.isAdmin()) {
+   return "redirect:/admin/my-store";
+  }
   model.addAttribute("book", admin.bookForEdit(id));
   model.addAttribute("categories", admin.categories());
   model.addAttribute("stores", admin.activeStores());
@@ -87,8 +97,14 @@ public class AdminController {
   @RequestParam BigDecimal costPrice,
   @RequestParam BigDecimal salePrice,
   @RequestParam(defaultValue = "1") int copyQuantity,
+  Principal principal,
   RedirectAttributes flash
  ) {
+  var u = user(principal);
+  if (!storeService.getUserStoreContext(u.id).isAdmin()) {
+   flash.addFlashAttribute("error", "Chỉ Quản trị viên (Admin) mới có quyền thêm đầu sách toàn hệ thống.");
+   return "redirect:/admin/my-store";
+  }
   try {
    int bookId = admin.createBook(title, categoryId, authorName, publisherName, publishYear, translator, isbn, coverImage, description, storeId, conditionId, costPrice, salePrice, copyQuantity);
    flash.addFlashAttribute("success", "Đã thêm đầu sách mới (MS-" + bookId + ") kèm " + copyQuantity + " bản sách vật lý vào kho.");
@@ -111,8 +127,14 @@ public class AdminController {
   @RequestParam(defaultValue = "") String isbn,
   @RequestParam(defaultValue = "") String coverImage,
   @RequestParam(defaultValue = "") String description,
+  Principal principal,
   RedirectAttributes flash
  ) {
+  var u = user(principal);
+  if (!storeService.getUserStoreContext(u.id).isAdmin()) {
+   flash.addFlashAttribute("error", "Chỉ Quản trị viên (Admin) mới có quyền sửa thông tin đầu sách toàn hệ thống.");
+   return "redirect:/admin/my-store";
+  }
   try {
    admin.updateBook(id, title, categoryId, authorName, publisherName, publishYear, translator, isbn, coverImage, description);
    flash.addFlashAttribute("success", "Đã cập nhật thông tin đầu sách MS-" + id + " thành công.");
@@ -123,7 +145,12 @@ public class AdminController {
  }
 
  @PostMapping("/books/{id}/delete")
- public String deleteBook(@PathVariable int id, RedirectAttributes flash) {
+ public String deleteBook(@PathVariable int id, Principal principal, RedirectAttributes flash) {
+  var u = user(principal);
+  if (!storeService.getUserStoreContext(u.id).isAdmin()) {
+   flash.addFlashAttribute("error", "Chỉ Quản trị viên (Admin) mới có quyền xóa đầu sách.");
+   return "redirect:/admin/my-store";
+  }
   admin.deleteBook(id);
   flash.addFlashAttribute("success", "Đã xóa đầu sách MS-" + id + " khỏi hệ thống.");
   return "redirect:/admin#books-section";
@@ -139,10 +166,14 @@ public class AdminController {
   @RequestParam(defaultValue = "") String conditionNotes,
   @RequestParam(defaultValue = "Kệ A1") String shelfLocation,
   @RequestParam(defaultValue = "") String source,
+  Principal principal,
   RedirectAttributes flash
  ) {
+  var u = user(principal);
+  var ctx = storeService.getUserStoreContext(u.id);
+  int effectiveStoreId = ctx.isAdmin() ? storeId : (ctx.storeId() != null ? ctx.storeId() : storeId);
   try {
-   admin.addCopy(id, storeId, conditionId, costPrice, salePrice, conditionNotes, shelfLocation);
+   admin.addCopy(id, effectiveStoreId, conditionId, costPrice, salePrice, conditionNotes, shelfLocation);
    flash.addFlashAttribute("success", "Đã thêm bản sách vật lý mới vào kho.");
   } catch (AuthProblem ex) {
    flash.addFlashAttribute("error", ex.getMessage());
@@ -188,16 +219,25 @@ public class AdminController {
  public String updateOrderStatus(
   @PathVariable int id,
   @RequestParam String status,
+  @RequestParam(defaultValue = "") String source,
   Principal principal,
   RedirectAttributes flash
  ) {
   var u = user(principal);
+  var ctx = storeService.getUserStoreContext(u.id);
+  if (!ctx.isAdmin()) {
+   Integer orderStoreId = admin.getOrderStoreId(id);
+   if (orderStoreId != null && (ctx.storeId() == null || ctx.storeId().intValue() != orderStoreId.intValue())) {
+    flash.addFlashAttribute("error", "Bạn chỉ được phép duyệt đơn hàng phát sinh tại chi nhánh của mình.");
+    return "my-store".equalsIgnoreCase(source) ? "redirect:/admin/my-store#orders-section" : "redirect:/admin#orders-section";
+   }
+  }
   try {
    admin.updateOrderStatus(u.id, id, status);
    flash.addFlashAttribute("success", "Đã cập nhật trạng thái đơn hàng thành công.");
   } catch (AuthProblem ex) {
    flash.addFlashAttribute("error", ex.getMessage());
   }
-  return "redirect:/admin#orders-section";
+  return "my-store".equalsIgnoreCase(source) ? "redirect:/admin/my-store#orders-section" : "redirect:/admin#orders-section";
  }
 }

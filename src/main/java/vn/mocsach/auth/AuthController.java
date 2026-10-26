@@ -7,12 +7,13 @@ import org.springframework.mail.MailException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import vn.mocsach.catalog.StoreService;
 import java.security.Principal;
 import java.time.*;
 @Controller
 public class AuthController {
- private final AuthService service;private final JwtTokens tokens;private final RequestLimiter limiter;private final UserRepository users;private final boolean secure;
- public AuthController(AuthService service,JwtTokens tokens,RequestLimiter limiter,UserRepository users,@Value("${app.auth.secure-cookie:false}") boolean secure){this.service=service;this.tokens=tokens;this.limiter=limiter;this.users=users;this.secure=secure;}
+ private final AuthService service;private final JwtTokens tokens;private final RequestLimiter limiter;private final UserRepository users;private final StoreService storeService;private final boolean secure;
+ public AuthController(AuthService service,JwtTokens tokens,RequestLimiter limiter,UserRepository users,StoreService storeService,@Value("${app.auth.secure-cookie:false}") boolean secure){this.service=service;this.tokens=tokens;this.limiter=limiter;this.users=users;this.storeService=storeService;this.secure=secure;}
  private String page(String mode,Model m){m.addAttribute("mode",mode);return "auth";}
  private void cookie(HttpServletRequest req,HttpServletResponse res,String value,int seconds){res.addHeader(HttpHeaders.SET_COOKIE,ResponseCookie.from("mocsach_auth",value).httpOnly(true).secure(secure).sameSite("Lax").path(req.getContextPath().isBlank()?"/":req.getContextPath()).maxAge(seconds).build().toString());}
  private void limit(HttpServletRequest r,String action,int count){limiter.check(action+":"+r.getRemoteAddr(),count,Duration.ofMinutes(10));}
@@ -21,7 +22,7 @@ public class AuthController {
  @GetMapping("/register") public String register(Model m){return page("register",m);}
  @GetMapping("/forgot-password") public String forgot(Model m){return page("forgot",m);}
  @PostMapping("/auth/login") public String loginPost(@RequestParam(defaultValue="") String identifier,@RequestParam(defaultValue="") String password,HttpServletRequest r,HttpServletResponse response,Model m){
-  try {limit(r,"login",20);limiter.check("login-user:"+identifier.strip().toLowerCase(),12,Duration.ofMinutes(10));var user=service.login(identifier,password);r.getSession();r.changeSessionId();cookie(r,response,tokens.issue(user),7200);return "redirect:/home";}
+  try {limit(r,"login",20);limiter.check("login-user:"+identifier.strip().toLowerCase(),12,Duration.ofMinutes(10));var user=service.login(identifier,password);r.getSession();r.changeSessionId();cookie(r,response,tokens.issue(user),7200);var ctx=storeService.getUserStoreContext(user.id);if(ctx.isAdmin()){return "redirect:/admin";}if(ctx.isStaff()||ctx.isManager()){return ctx.storeId()!=null?"redirect:/admin/my-store":"redirect:/admin";}return "redirect:/home";}
   catch(AuthProblem e){m.addAttribute("error",e.getMessage());m.addAttribute("identifier",identifier);return page("login",m);}
  }
  @PostMapping("/register") public String registerPost(@RequestParam(defaultValue="") String fullName,@RequestParam(defaultValue="") String username,@RequestParam(defaultValue="") String email,@RequestParam(defaultValue="") String password,@RequestParam(defaultValue="") String confirmPassword,HttpServletRequest r,Model m){

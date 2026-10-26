@@ -11,17 +11,17 @@ import jakarta.servlet.DispatcherType;
 import java.time.Clock;
 @Configuration
 public class SecurityConfig {
- @Bean Clock clock(){return Clock.systemUTC();}
- @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder(12);}
- @Bean FilterRegistrationBean<JwtCookieFilter> jwtRegistration(JwtCookieFilter filter){var r=new FilterRegistrationBean<>(filter);r.setEnabled(false);return r;}
- @Bean SecurityFilterChain security(HttpSecurity http,JwtCookieFilter filter)throws Exception {
-  return http.authorizeHttpRequests(a->a.dispatcherTypeMatchers(DispatcherType.FORWARD,DispatcherType.ERROR).permitAll()
-   .requestMatchers("/admin/**").hasAnyRole("ADMIN","STAFF")
-   .requestMatchers(org.springframework.http.HttpMethod.GET,"/books/*").permitAll()
-   .requestMatchers("/","/home","/login","/register","/forgot-password","/verify-otp","/resend-otp","/reset-password","/auth/login","/error","/css/**","/js/**","/images/**","/webjars/**").permitAll().anyRequest().authenticated())
-   .exceptionHandling(e->e.authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login")))
-   .formLogin(f->f.disable()).httpBasic(b->b.disable()).logout(l->l.disable())
-   .headers(h->h.contentSecurityPolicy(c->c.policyDirectives("default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")))
-   .addFilterBefore(filter,UsernamePasswordAuthenticationFilter.class).build();
- }
+	@Bean Clock clock(){return Clock.systemUTC();}
+	@Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder(12);}
+	@Bean FilterRegistrationBean<JwtCookieFilter> jwtRegistration(JwtCookieFilter filter){var r=new FilterRegistrationBean<>(filter);r.setEnabled(false);return r;}
+	@Bean SecurityFilterChain security(HttpSecurity http,JwtCookieFilter filter)throws Exception {
+		return http.authorizeHttpRequests(a->a.dispatcherTypeMatchers(DispatcherType.FORWARD,DispatcherType.ERROR).permitAll()
+			.requestMatchers("/admin/**").hasAnyRole("ADMIN","STAFF","MANAGER")
+			.requestMatchers(org.springframework.http.HttpMethod.GET,"/books/*").permitAll()
+			.requestMatchers("/","/home","/stores","/login","/register","/forgot-password","/verify-otp","/resend-otp","/reset-password","/auth/login","/error","/css/**","/js/**","/images/**","/webjars/**").permitAll().anyRequest().authenticated())
+			.exceptionHandling(e->e.authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/login")))
+			.formLogin(f->f.disable()).httpBasic(b->b.disable()).logout(l->l.disable())
+			.headers(h->h.contentSecurityPolicy(c->c.policyDirectives("default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")))
+			.addFilterBefore(filter,UsernamePasswordAuthenticationFilter.class).build();
+	}
 }

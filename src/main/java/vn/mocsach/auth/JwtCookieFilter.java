@@ -20,7 +20,9 @@ public class JwtCookieFilter extends OncePerRequestFilter {
     var jwt=tokens.decode(cookie.getValue());var user=users.findById(Integer.valueOf(jwt.getSubject())).orElse(null);
     Number version=jwt.getClaim("version");
     if(user!=null&&"ACTIVE".equals(user.status)&&version!=null&&version.intValue()==user.authVersion) {
-     var roles=jdbc.query("SELECT r.RoleCode FROM dbo.Roles r JOIN dbo.UserRoles ur ON ur.RoleId=r.RoleId WHERE ur.UserId=?",(rs,n)->new SimpleGrantedAuthority("ROLE_"+rs.getString(1)),user.id);
+     var roles=new HashSet<SimpleGrantedAuthority>();
+     jdbc.query("SELECT r.RoleCode FROM dbo.Roles r JOIN dbo.UserRoles ur ON ur.RoleId=r.RoleId WHERE ur.UserId=?",(rs,n)->roles.add(new SimpleGrantedAuthority("ROLE_"+rs.getString(1))),user.id);
+     jdbc.query("SELECT DISTINCT StoreRole FROM dbo.StaffStoreAssignments WHERE UserId=? AND Status='ACTIVE'",(rs,n)->roles.add(new SimpleGrantedAuthority("ROLE_"+rs.getString(1))),user.id);
      SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(user.username,null,roles));
     }
    } catch(JwtException|IllegalArgumentException ignored) { SecurityContextHolder.clearContext(); }
