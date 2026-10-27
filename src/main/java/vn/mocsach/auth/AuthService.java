@@ -39,8 +39,21 @@ public class AuthService {
   return s;
  }
  public void validatePassword(String password,String confirmation) {
-  if(password==null || password.length()<8 || password.getBytes(StandardCharsets.UTF_8).length>72) throw new AuthProblem("Mật khẩu mới cần ít nhất 8 ký tự và tối đa 72 byte.");
+  if(password==null || password.length()<6 || password.getBytes(StandardCharsets.UTF_8).length>72) throw new AuthProblem("Mật khẩu mới cần ít nhất 6 ký tự và tối đa 72 byte.");
   if(!password.equals(confirmation)) throw new AuthProblem("Hai mật khẩu chưa trùng khớp.");
+ }
+ private LocalDateTime safeUpdatedAt(UserAccount u) {
+  LocalDateTime n=now();
+  if(u.createdAt!=null && u.createdAt.isAfter(n)) n=u.createdAt.plusSeconds(1);
+  if(u.updatedAt!=null && u.updatedAt.isAfter(n)) n=u.updatedAt.plusSeconds(1);
+  return n;
+ }
+ private void revokeRefreshTokens(int userId) {
+  try {
+   jdbc.update("UPDATE dbo.RefreshTokens SET RevokedAt = CASE WHEN CreatedAt > ? THEN CreatedAt ELSE ? END WHERE UserId=? AND RevokedAt IS NULL",now(),now(),userId);
+  } catch(org.springframework.dao.DataAccessException ex) {
+   jdbc.update("UPDATE dbo.RefreshTokens SET RevokedAt=? WHERE UserId=? AND RevokedAt IS NULL",now(),userId);
+  }
  }
  private void emailLimit(String email) {
   if(challenges.countByEmailAndCreatedAtAfter(email,now().minusHours(1))>=5) throw new AuthProblem("Email này đã nhận nhiều yêu cầu. Vui lòng thử lại sau một giờ.");
@@ -113,8 +126,8 @@ public class AuthService {
   if(!"RESET".equals(c.purpose)||c.verifiedAt==null||c.usedAt!=null||!c.expiresAt.isAfter(now())||c.userId==null) throw new AuthProblem("Phiên đặt lại mật khẩu đã hết hiệu lực. Vui lòng bắt đầu lại.");
   UserAccount u=users.locked(c.userId).orElseThrow(()->new AuthProblem("Tài khoản không khả dụng."));
   if(!"ACTIVE".equals(u.status)||!Objects.equals(c.versionAtIssue,u.authVersion)) throw new AuthProblem("Phiên đặt lại mật khẩu không còn hiệu lực.");
-  u.passwordHash=passwords.encode(password);u.authVersion++;u.updatedAt=now();c.usedAt=now();
-  jdbc.update("UPDATE dbo.RefreshTokens SET RevokedAt=? WHERE UserId=? AND RevokedAt IS NULL",now(),u.id);
+  u.passwordHash=passwords.encode(password);u.authVersion++;u.updatedAt=safeUpdatedAt(u);c.usedAt=now();
+  revokeRefreshTokens(u.id);
   jdbc.update("UPDATE dbo.AuthChallenges SET UsedAt=? WHERE UserId=? AND Purpose='RESET' AND UsedAt IS NULL",now(),u.id);
  }
  private UserAccount active(int id) {
@@ -130,17 +143,25 @@ public class AuthService {
   fullName=fullName==null?"":fullName.strip();phone=phone==null?"":phone.strip().replaceAll("[ .()-]", "");
   if(fullName.length()<2||fullName.length()>150) throw new AuthProblem("Họ tên cần từ 2 đến 150 ký tự.");
   if(!phone.isEmpty()&&!phone.matches("\\+?[0-9]{9,15}")) throw new AuthProblem("Số điện thoại cần từ 9 đến 15 chữ số, có thể bắt đầu bằng +.");
-  var u=active(id);u.fullName=fullName;u.phone=phone.isEmpty()?null:phone;u.updatedAt=now();
+  var u=active(id);u.fullName=fullName;u.phone=phone.isEmpty()?null:phone;u.updatedAt=safeUpdatedAt(u);
  }
  @Transactional public void changePassword(int id,String current,String password,String confirmation) {
   validatePassword(password,confirmation);var u=active(id);currentPassword(u,current);
   if(passwords.matches(password,u.passwordHash)) throw new AuthProblem("Mật khẩu mới cần khác mật khẩu hiện tại.");
-  u.passwordHash=passwords.encode(password);u.authVersion++;u.updatedAt=now();
-  jdbc.update("UPDATE dbo.RefreshTokens SET RevokedAt=? WHERE UserId=? AND RevokedAt IS NULL",now(),id);
+  u.passwordHash=passwords.encode(password);u.authVersion++;u.updatedAt=safeUpdatedAt(u);
+  revokeRefreshTokens(id);
   jdbc.update("UPDATE dbo.AuthChallenges SET UsedAt=? WHERE UserId=? AND Purpose='RESET' AND UsedAt IS NULL",now(),id);
  }
+ @Transactional public String beginEmailChange(int id,String rawEmail) {
+  return beginEmailChangeInternal(id,rawEmail,null,false);
+ }
  @Transactional public String beginEmailChange(int id,String rawEmail,String password) {
-  var u=active(id);currentPassword(u,password);String target=email(rawEmail);
+  return beginEmailChangeInternal(id,rawEmail,password,true);
+ }
+ private String beginEmailChangeInternal(int id,String rawEmail,String password,boolean checkPassword) {
+  var u=active(id);
+  if(checkPassword) currentPassword(u,password);
+  String target=email(rawEmail);
   if(users.existsByEmailIgnoreCase(target)) throw new AuthProblem("Email này đã được sử dụng.");
   emailLimit(target);
   if(jdbc.queryForObject("SELECT COUNT(*) FROM dbo.AuthChallenges WHERE UserId=? AND Purpose='EMAIL' AND CreatedAt>?",Integer.class,id,now().minusHours(1))>=5) throw new AuthProblem("Vui lòng thử lại sau.");
@@ -148,9 +169,23 @@ public class AuthService {
   jdbc.update("UPDATE dbo.AuthChallenges SET UsedAt=? WHERE UserId=? AND Purpose='EMAIL' AND UsedAt IS NULL",now(),id);
   var c=fresh("EMAIL",target);c.userId=id;c.versionAtIssue=u.authVersion;issue(c,true);return c.id;
  }
+ public AuthChallenge findActiveEmailChallenge(int userId,String sessionChallengeId) {
+  if(sessionChallengeId!=null && !sessionChallengeId.isBlank()) {
+   var opt=challenges.findById(sessionChallengeId);
+   if(opt.isPresent()) {
+    var c=opt.get();
+    if("EMAIL".equals(c.purpose) && Objects.equals(c.userId,userId) && c.usedAt==null) return c;
+   }
+  }
+  try {
+   var ids=jdbc.queryForList("SELECT ChallengeId FROM dbo.AuthChallenges WHERE UserId=? AND Purpose='EMAIL' AND UsedAt IS NULL ORDER BY CreatedAt DESC",String.class,userId);
+   if(!ids.isEmpty()) return challenges.findById(ids.get(0)).orElse(null);
+  } catch(org.springframework.dao.DataAccessException ignored) {}
+  return null;
+ }
  private AuthChallenge ownedEmail(UserAccount u,String id) {
   var c=locked(id);
-  if(!"EMAIL".equals(c.purpose)||!Objects.equals(c.userId,u.id)||!Objects.equals(c.versionAtIssue,u.authVersion))
+  if(!"EMAIL".equals(c.purpose)||!Objects.equals(c.userId,u.id)||(c.versionAtIssue!=null&&!Objects.equals(c.versionAtIssue,u.authVersion)))
    throw new AuthProblem("Phiên đổi email không còn hiệu lực. Vui lòng bắt đầu lại.");
   return c;
  }
@@ -162,9 +197,9 @@ public class AuthService {
   if(code==null||!code.matches("[0-9]{6}")||!MessageDigest.isEqual(c.codeHash.getBytes(StandardCharsets.US_ASCII),digest(c.id,code).getBytes(StandardCharsets.US_ASCII)))
    throw new AuthProblem("Mã xác thực chưa đúng.");
   if(users.existsByEmailIgnoreCase(c.email)) {c.usedAt=now();throw new AuthProblem("Email này đã được sử dụng. Vui lòng chọn email khác.");}
-  u.email=c.email;u.updatedAt=now();u.authVersion++;c.usedAt=now();c.verifiedAt=now();
-  jdbc.update("UPDATE dbo.RefreshTokens SET RevokedAt=? WHERE UserId=? AND RevokedAt IS NULL",now(),userId);
+  u.email=c.email;u.updatedAt=safeUpdatedAt(u);u.authVersion++;c.usedAt=now();c.verifiedAt=now();
+  revokeRefreshTokens(userId);
   jdbc.update("UPDATE dbo.AuthChallenges SET UsedAt=? WHERE UserId=? AND Purpose='RESET' AND UsedAt IS NULL",now(),userId);
  }
- @Transactional public String updateAvatar(int id,String path) {var u=active(id);String old=u.avatarPath;u.avatarPath=path;u.updatedAt=now();return old;}
+ @Transactional public String updateAvatar(int id,String path) {var u=active(id);String old=u.avatarPath;u.avatarPath=path;u.updatedAt=safeUpdatedAt(u);return old;}
 }

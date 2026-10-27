@@ -8,6 +8,8 @@ import vn.mocsach.auth.*;
 
 import java.math.BigDecimal;
 import java.security.Principal;
+import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/admin")
@@ -67,16 +69,33 @@ public class AdminController {
  }
 
  @GetMapping("/books/{id}/edit")
- public String editBookPage(@PathVariable int id, Principal principal, Model model) {
+ @SuppressWarnings("unchecked")
+ public String editBookPage(@PathVariable int id, Principal principal, Model model, RedirectAttributes flash) {
   var u = user(principal);
   populateHeader(u, model);
   var ctx = storeService.getUserStoreContext(u.id);
-  if (!ctx.isAdmin()) {
+  if (!ctx.isAdmin() && !ctx.isManager()) {
+   flash.addFlashAttribute("error", "Chỉ Quản trị viên (Admin) hoặc Quản lý chi nhánh (Manager) mới có quyền chỉnh sửa sách.");
    return "redirect:/admin/my-store";
   }
-  model.addAttribute("book", admin.bookForEdit(id));
+  model.addAttribute("userContext", ctx);
+  var book = admin.bookForEdit(id);
+  var stores = admin.activeStores();
+  if (!ctx.isAdmin() && ctx.storeId() != null) {
+   int myStoreId = ctx.storeId();
+   var allCopies = (List<Map<String, Object>>) book.get("copies");
+   if (allCopies != null) {
+    book.put("copies", allCopies.stream()
+     .filter(cp -> ((Number) cp.get("storeId")).intValue() == myStoreId)
+     .toList());
+   }
+   stores = stores.stream()
+    .filter(st -> ((Number) st.get("id")).intValue() == myStoreId)
+    .toList();
+  }
+  model.addAttribute("book", book);
   model.addAttribute("categories", admin.categories());
-  model.addAttribute("stores", admin.activeStores());
+  model.addAttribute("stores", stores);
   model.addAttribute("conditions", admin.conditions());
   return "admin-book-edit";
  }
@@ -97,21 +116,28 @@ public class AdminController {
   @RequestParam BigDecimal costPrice,
   @RequestParam BigDecimal salePrice,
   @RequestParam(defaultValue = "1") int copyQuantity,
+  @RequestParam(defaultValue = "Kệ A1") String shelfLocation,
+  @RequestParam(defaultValue = "") String source,
   Principal principal,
   RedirectAttributes flash
  ) {
   var u = user(principal);
-  if (!storeService.getUserStoreContext(u.id).isAdmin()) {
-   flash.addFlashAttribute("error", "Chỉ Quản trị viên (Admin) mới có quyền thêm đầu sách toàn hệ thống.");
+  var ctx = storeService.getUserStoreContext(u.id);
+  if (!ctx.isAdmin() && !ctx.isManager()) {
+   flash.addFlashAttribute("error", "Chỉ Quản trị viên (Admin) hoặc Quản lý chi nhánh (Manager) mới có quyền thêm sách mới.");
    return "redirect:/admin/my-store";
   }
+  int effectiveStoreId = ctx.isAdmin() ? storeId : (ctx.storeId() != null ? ctx.storeId() : storeId);
   try {
-   int bookId = admin.createBook(title, categoryId, authorName, publisherName, publishYear, translator, isbn, coverImage, description, storeId, conditionId, costPrice, salePrice, copyQuantity);
-   flash.addFlashAttribute("success", "Đã thêm đầu sách mới (MS-" + bookId + ") kèm " + copyQuantity + " bản sách vật lý vào kho.");
+   int bookId = admin.createBook(title, categoryId, authorName, publisherName, publishYear, translator, isbn, coverImage, description, effectiveStoreId, conditionId, costPrice, salePrice, copyQuantity, shelfLocation);
+   flash.addFlashAttribute("success", "Đã thêm đầu sách mới (MS-" + bookId + ") kèm " + copyQuantity + " bản sách vật lý vào kho chi nhánh.");
+   if ("my-store".equalsIgnoreCase(source) || !ctx.isAdmin()) {
+    return "redirect:/admin/my-store?storeId=" + effectiveStoreId + "#inventory-section";
+   }
    return "redirect:/admin/books/" + bookId + "/edit";
   } catch (AuthProblem ex) {
    flash.addFlashAttribute("error", ex.getMessage());
-   return "redirect:/admin#books-section";
+   return ("my-store".equalsIgnoreCase(source) || !ctx.isAdmin()) ? "redirect:/admin/my-store#inventory-section" : "redirect:/admin#books-section";
   }
  }
 
@@ -131,8 +157,9 @@ public class AdminController {
   RedirectAttributes flash
  ) {
   var u = user(principal);
-  if (!storeService.getUserStoreContext(u.id).isAdmin()) {
-   flash.addFlashAttribute("error", "Chỉ Quản trị viên (Admin) mới có quyền sửa thông tin đầu sách toàn hệ thống.");
+  var ctx = storeService.getUserStoreContext(u.id);
+  if (!ctx.isAdmin() && !ctx.isManager()) {
+   flash.addFlashAttribute("error", "Chỉ Quản trị viên (Admin) hoặc Quản lý chi nhánh (Manager) mới có quyền sửa thông tin sách.");
    return "redirect:/admin/my-store";
   }
   try {
@@ -145,15 +172,46 @@ public class AdminController {
  }
 
  @PostMapping("/books/{id}/delete")
- public String deleteBook(@PathVariable int id, Principal principal, RedirectAttributes flash) {
+ public String deleteBook(
+  @PathVariable int id,
+  @RequestParam(defaultValue = "") String source,
+  Principal principal,
+  RedirectAttributes flash
+ ) {
   var u = user(principal);
-  if (!storeService.getUserStoreContext(u.id).isAdmin()) {
-   flash.addFlashAttribute("error", "Chỉ Quản trị viên (Admin) mới có quyền xóa đầu sách.");
+  var ctx = storeService.getUserStoreContext(u.id);
+  if (!ctx.isAdmin() && !ctx.isManager()) {
+   flash.addFlashAttribute("error", "Chỉ Quản trị viên (Admin) hoặc Quản lý chi nhánh (Manager) mới có quyền xóa sách.");
    return "redirect:/admin/my-store";
   }
-  admin.deleteBook(id);
-  flash.addFlashAttribute("success", "Đã xóa đầu sách MS-" + id + " khỏi hệ thống.");
-  return "redirect:/admin#books-section";
+  if (ctx.isAdmin()) {
+   admin.deleteBook(id);
+   flash.addFlashAttribute("success", "Đã xóa đầu sách MS-" + id + " khỏi hệ thống.");
+   return "my-store".equalsIgnoreCase(source) ? "redirect:/admin/my-store#inventory-section" : "redirect:/admin#books-section";
+  } else {
+   if (ctx.storeId() == null) {
+    flash.addFlashAttribute("error", "Bạn chưa được phân công chi nhánh để thực hiện xóa sách.");
+    return "redirect:/admin/my-store";
+   }
+   admin.deleteBookFromStore(id, ctx.storeId());
+   flash.addFlashAttribute("success", "Đã xóa sách MS-" + id + " khỏi kho chi nhánh " + (ctx.storeName() != null ? ctx.storeName() : "") + " thành công.");
+   return "redirect:/admin/my-store?storeId=" + ctx.storeId() + "#inventory-section";
+  }
+ }
+
+ @PostMapping("/books/copies/add-to-store")
+ public String addCopyToStore(
+  @RequestParam int bookId,
+  @RequestParam int storeId,
+  @RequestParam int conditionId,
+  @RequestParam BigDecimal costPrice,
+  @RequestParam BigDecimal salePrice,
+  @RequestParam(defaultValue = "") String conditionNotes,
+  @RequestParam(defaultValue = "Kệ A1") String shelfLocation,
+  Principal principal,
+  RedirectAttributes flash
+ ) {
+  return addCopy(bookId, storeId, conditionId, costPrice, salePrice, conditionNotes, shelfLocation, "my-store", principal, flash);
  }
 
  @PostMapping("/books/{id}/copies/add")
@@ -171,12 +229,19 @@ public class AdminController {
  ) {
   var u = user(principal);
   var ctx = storeService.getUserStoreContext(u.id);
+  if (!ctx.isAdmin() && !ctx.isManager()) {
+   flash.addFlashAttribute("error", "Chỉ Quản trị viên (Admin) hoặc Quản lý chi nhánh (Manager) mới có quyền thêm bản sách vào chi nhánh.");
+   return "redirect:/admin/my-store#inventory-section";
+  }
   int effectiveStoreId = ctx.isAdmin() ? storeId : (ctx.storeId() != null ? ctx.storeId() : storeId);
   try {
    admin.addCopy(id, effectiveStoreId, conditionId, costPrice, salePrice, conditionNotes, shelfLocation);
-   flash.addFlashAttribute("success", "Đã thêm bản sách vật lý mới vào kho.");
+   flash.addFlashAttribute("success", "Đã thêm bản sách vật lý mới (MS-" + id + ") vào kho chi nhánh.");
   } catch (AuthProblem ex) {
    flash.addFlashAttribute("error", ex.getMessage());
+  }
+  if ("my-store".equalsIgnoreCase(source)) {
+   return "redirect:/admin/my-store?storeId=" + effectiveStoreId + "#inventory-section";
   }
   return "detail".equalsIgnoreCase(source) ? "redirect:/books/" + id + "#staff-inventory" : "redirect:/admin/books/" + id + "/edit#copies-section";
  }
@@ -191,14 +256,34 @@ public class AdminController {
   @RequestParam BigDecimal salePrice,
   @RequestParam(defaultValue = "AVAILABLE") String status,
   @RequestParam(defaultValue = "") String conditionNotes,
+  @RequestParam(required = false) String shelfLocation,
   @RequestParam(defaultValue = "") String source,
+  Principal principal,
   RedirectAttributes flash
  ) {
+  var u = user(principal);
+  var ctx = storeService.getUserStoreContext(u.id);
+  int effectiveStoreId = storeId;
+  if (!ctx.isAdmin()) {
+   if (!ctx.isManager()) {
+    flash.addFlashAttribute("error", "Chỉ Quản lý chi nhánh (Manager) hoặc Admin mới có quyền chỉnh sửa bản sách.");
+    return "redirect:/admin/my-store#inventory-section";
+   }
+   Integer copyStoreId = admin.getCopyStoreId(copyId);
+   if (copyStoreId == null || ctx.storeId() == null || copyStoreId.intValue() != ctx.storeId().intValue()) {
+    flash.addFlashAttribute("error", "Bạn chỉ có quyền chỉnh sửa sách thuộc chi nhánh mình đang quản lý.");
+    return "redirect:/admin/my-store#inventory-section";
+   }
+   effectiveStoreId = ctx.storeId();
+  }
   try {
-   admin.updateCopy(copyId, storeId, conditionId, costPrice, salePrice, status, conditionNotes);
-   flash.addFlashAttribute("success", "Đã cập nhật tình trạng, giá nhập (CostPrice) và giá bán (SalePrice) của bản sách.");
+   admin.updateCopy(copyId, effectiveStoreId, conditionId, costPrice, salePrice, status, conditionNotes, shelfLocation);
+   flash.addFlashAttribute("success", "Đã cập nhật thông tin bản sách #" + copyId + " thành công.");
   } catch (AuthProblem ex) {
    flash.addFlashAttribute("error", ex.getMessage());
+  }
+  if ("my-store".equalsIgnoreCase(source)) {
+   return "redirect:/admin/my-store?storeId=" + effectiveStoreId + "#inventory-section";
   }
   return "detail".equalsIgnoreCase(source) ? "redirect:/books/" + bookId + "#staff-inventory" : "redirect:/admin/books/" + bookId + "/edit#copies-section";
  }
@@ -208,11 +293,32 @@ public class AdminController {
   @PathVariable int bookId,
   @PathVariable int copyId,
   @RequestParam(defaultValue = "") String source,
+  Principal principal,
   RedirectAttributes flash
  ) {
+  var u = user(principal);
+  var ctx = storeService.getUserStoreContext(u.id);
+  if (!ctx.isAdmin()) {
+   if (!ctx.isManager()) {
+    flash.addFlashAttribute("error", "Chỉ Quản lý chi nhánh (Manager) hoặc Admin mới có quyền xóa bản sách.");
+    return "redirect:/admin/my-store#inventory-section";
+   }
+   Integer copyStoreId = admin.getCopyStoreId(copyId);
+   if (copyStoreId == null || ctx.storeId() == null || copyStoreId.intValue() != ctx.storeId().intValue()) {
+    flash.addFlashAttribute("error", "Bạn chỉ có quyền xóa sách thuộc chi nhánh mình đang quản lý.");
+    return "redirect:/admin/my-store#inventory-section";
+   }
+  }
   admin.deleteCopy(copyId);
-  flash.addFlashAttribute("success", "Đã xóa bản sách vật lý khỏi kho.");
-  return "detail".equalsIgnoreCase(source) ? "redirect:/books/" + bookId + "#staff-inventory" : "redirect:/admin/books/" + bookId + "/edit#copies-section";
+  flash.addFlashAttribute("success", "Đã xóa bản sách vật lý khỏi kho chi nhánh.");
+  if ("my-store".equalsIgnoreCase(source)) {
+   return "redirect:/admin/my-store" + (ctx.storeId() != null ? "?storeId=" + ctx.storeId() : "") + "#inventory-section";
+  }
+  return "detail".equalsIgnoreCase(source) ? "redirect:/books/" + bookId + "#staff-inventory" : "redirect:/admin/books/" + idOrBook(bookId) + "/edit#copies-section";
+ }
+
+ private static int idOrBook(int bookId) {
+  return bookId;
  }
 
  @PostMapping("/orders/{id}/status")

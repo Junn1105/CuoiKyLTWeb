@@ -5,7 +5,14 @@
 <body class="cart-page" data-base="${base}"><main class="cart-shell">
 <header class="cart-header">
  <a class="brand" href="${base}/home"><img src="${base}/images/moc-sach-mark.svg" alt="" width="30" height="30">Mộc Sách.</a>
- <a href="${base}/admin#books-section">← Quay lại Dashboard Quản trị</a>
+ <c:choose>
+  <c:when test="${not empty userContext and not userContext.isAdmin()}">
+   <a href="${base}/admin/my-store#inventory-section">← Quay lại Chi nhánh (<c:out value="${userContext.storeName()}"/>)</a>
+  </c:when>
+  <c:otherwise>
+   <a href="${base}/admin#books-section">← Quay lại Dashboard Quản trị</a>
+  </c:otherwise>
+ </c:choose>
  <div class="header-links"><a class="cart-link" href="${base}/books/${book.id}">Xem trang khách hàng ↗</a><shop:notifications/><a href="${base}/account"><c:out value="${displayName}"/></a></div>
 </header>
 
@@ -20,7 +27,15 @@
   </div>
   <form method="post" action="${base}/admin/books/${book.id}/delete" class="inline-form" data-confirm-cancel>
    <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
-   <button type="submit" class="remove-button">🗑 Xóa đầu sách này</button>
+   <c:choose>
+    <c:when test="${not empty userContext and not userContext.isAdmin()}">
+     <input type="hidden" name="source" value="my-store">
+     <button type="submit" class="remove-button">🗑 Xóa sách khỏi chi nhánh <c:out value="${userContext.storeName()}"/></button>
+    </c:when>
+    <c:otherwise>
+     <button type="submit" class="remove-button">🗑 Xóa đầu sách này</button>
+    </c:otherwise>
+   </c:choose>
   </form>
  </div>
 
@@ -77,8 +92,8 @@
 <section id="copies-section" class="panel admin-section">
  <div class="panel-top">
   <div>
-   <span class="eyebrow">CHỈ HIỂN THỊ & QUẢN LÝ BỞI STAFF / ADMIN</span>
-   <h2>Quản lý Bản sách vật lý: Tình trạng (Như mới, Tốt, Khá), Giá nhập (CostPrice) & Giá bán (SalePrice)</h2>
+   <span class="eyebrow">QUẢN LÝ BỞI MANAGER CHI NHÁNH / ADMIN</span>
+   <h2>Quản lý Bản sách vật lý: Vị trí kệ, Tình trạng (Như mới, Tốt, Khá), Giá nhập (CostPrice) &amp; Giá bán (SalePrice)</h2>
   </div>
  </div>
 
@@ -88,6 +103,7 @@
     <tr>
      <th>Mã bản sách</th>
      <th>Chi nhánh</th>
+     <th>Vị trí kệ</th>
      <th>Tình trạng (Như mới, Tốt, Khá)</th>
      <th>Giá nhập (CostPrice - ₫)</th>
      <th>Giá bán (SalePrice - ₫)</th>
@@ -107,6 +123,7 @@
         </c:forEach>
        </select>
       </td>
+      <td><input type="text" name="shelfLocation" form="edit-copy-${cp.copyId}" value="<c:out value='${cp.shelfLocation}'/>" placeholder="Kệ A1" style="width:90px;"></td>
       <td>
        <select name="conditionId" form="edit-copy-${cp.copyId}">
         <c:forEach items="${conditions}" var="cond">
@@ -150,11 +167,12 @@
   <select name="conditionId" required>
    <c:forEach items="${conditions}" var="cond"><option value="${cond.id}"><c:out value="${cond.name}"/></option></c:forEach>
   </select>
+  <input type="text" name="shelfLocation" value="Kệ A1" placeholder="Vị trí kệ" style="width:100px;">
   <input type="number" name="costPrice" min="0" step="1000" required placeholder="Giá nhập (CostPrice)">
   <input type="number" name="salePrice" min="1000" step="1000" required placeholder="Giá bán (SalePrice)">
   <input type="text" name="conditionNotes" placeholder="Ghi chú tình trạng…">
   <button type="submit">+ Thêm bản sách</button>
  </form>
 </section>
-<footer><span>Mộc Sách.</span>Hệ thống quản trị chuỗi cửa hàng sách cũ.<a href="${base}/admin">Về Dashboard</a></footer>
+<footer><span>Mộc Sách.</span>Hệ thống quản trị chuỗi cửa hàng sách cũ.<a href="${base}/admin/my-store">Về Không gian Chi nhánh</a></footer>
 </main><div id="toast" role="status" aria-live="polite" hidden><span></span><button type="button" aria-label="Đóng thông báo">×</button></div></body></html>

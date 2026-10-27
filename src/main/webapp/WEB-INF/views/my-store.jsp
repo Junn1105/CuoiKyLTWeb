@@ -12,7 +12,7 @@
  <link rel="stylesheet" href="${base}/css/cart.css">
  <script defer src="${base}/js/home.js"></script>
  <style>
-  .workspace-shell { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+  .workspace-shell { max-width: 1240px; margin: 0 auto; padding: 24px 20px; }
   .store-header-banner { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); color: #fff; border-radius: 16px; padding: 24px 28px; margin-bottom: 24px; box-shadow: 0 10px 25px -5px rgba(15,23,42,0.15); display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
   .store-header-info h1 { font-size: 24px; margin: 0 0 8px 0; color: #fff; }
   .store-header-info p { margin: 0 0 6px 0; color: #cbd5e1; font-size: 14px; }
@@ -40,7 +40,7 @@
   .status-badge.cancelled { background: #fef2f2; color: #b91c1c; }
   .status-badge.available { background: #ecfdf5; color: #047857; }
   
-  .btn-sm { padding: 4px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; border: 1px solid transparent; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; font-weight: 600; border-radius: 6px; border: 1px solid transparent; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
   .btn-primary { background: #2563eb; color: #fff; }
   .btn-primary:hover { background: #1d4ed8; }
   .btn-success { background: #059669; color: #fff; }
@@ -55,6 +55,15 @@
   .alert-banner { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 13.5px; }
   .alert-banner.ok { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
   .alert-banner.err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+  .manager-book-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .tool-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; }
+  .tool-box h3 { margin: 0 0 10px 0; font-size: 15px; color: #0f172a; }
+  .tool-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 10px; }
+  .tool-field label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 4px; }
+  .tool-field input, .tool-field select, .tool-field textarea { width: 100%; padding: 6px 8px; font-size: 13px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; }
+  .inline-input { padding: 4px 6px; font-size: 12.5px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; }
+  @media (max-width: 960px) { .manager-book-tools { grid-template-columns: 1fr; } }
  </style>
 </head>
 <body class="cart-page" data-base="${base}">
@@ -67,10 +76,10 @@
     <a href="${base}/admin" class="btn-sm btn-outline">📊 Dashboard Chung</a>
    </c:if>
    <c:if test="${userContext.isAdmin() || userContext.isManager()}">
-    <a href="${base}/admin/stores" class="btn-sm btn-outline">🏬 Chuỗi & Phân quyền</a>
+    <a href="${base}/admin/stores" class="btn-sm btn-outline">🏬 Chuỗi &amp; Phân quyền</a>
    </c:if>
    <shop:notifications/>
-   <span style="font-size:13px; font-weight:600; color:#1e293b;"><c:out value="${displayName}"/></span>
+   <a href="${base}/account" style="font-size:13px; font-weight:600; color:#1e293b; text-decoration:none;"><c:out value="${displayName}"/></a>
   </div>
  </header>
 
@@ -84,7 +93,7 @@
     <span style="background:rgba(255,255,255,0.2); padding:2px 8px; border-radius:6px; font-size:12px; font-weight:700;"><c:out value="${store.storeCode}"/></span>
     <c:choose>
      <c:when test="${userContext.isAdmin()}"><span class="badge-role badge-admin">Quản trị viên (Toàn quyền)</span></c:when>
-     <c:when test="${userContext.isManager()}"><span class="badge-role badge-manager">Quản lý chi nhánh</span></c:when>
+     <c:when test="${userContext.isManager()}"><span class="badge-role badge-manager">Quản lý chi nhánh (Toàn quyền sách &amp; đơn chi nhánh)</span></c:when>
      <c:otherwise><span class="badge-role badge-staff">Nhân viên chi nhánh</span></c:otherwise>
     </c:choose>
    </div>
@@ -106,7 +115,7 @@
    </c:if>
    <div style="display:flex; gap:8px;">
     <a href="#orders-section" class="btn-sm btn-primary">📋 Đơn hàng</a>
-    <a href="#inventory-section" class="btn-sm btn-outline" style="color:#fff; border-color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.1);">📦 Kho sách</a>
+    <a href="#inventory-section" class="btn-sm btn-outline" style="color:#fff; border-color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.1);">📦 Kho sách (Thêm/Sửa/Xóa)</a>
     <a href="#transfers-section" class="btn-sm btn-outline" style="color:#fff; border-color:rgba(255,255,255,0.4); background:rgba(255,255,255,0.1);">🚚 Điều chuyển</a>
    </div>
   </div>
@@ -116,7 +125,7 @@
  <section class="section-card" id="orders-section">
   <div class="section-card-head">
    <div>
-    <h2>📋 Quản lý & Duyệt đơn mua hàng tại chi nhánh <small style="font-size:13px; font-weight:normal; color:#64748b;">(${storeOrders.size()} đơn)</small></h2>
+    <h2>📋 Quản lý &amp; Duyệt đơn mua hàng tại chi nhánh <small style="font-size:13px; font-weight:normal; color:#64748b;">(${storeOrders.size()} đơn)</small></h2>
     <span style="font-size:12.5px; color:#64748b;">Duyệt xác nhận, chuẩn bị sách trên kệ và cập nhật tiến độ giao cho khách.</span>
    </div>
    <div class="filter-bar">
@@ -185,6 +194,7 @@
             <option value="CANCELLED" ${o.status == 'CANCELLED' ? 'selected' : ''}>Hủy đơn</option>
            </select>
            <button type="submit" class="btn-sm btn-primary">Lưu</button>
+           <a href="${base}/orders/${o.id}/invoice" target="_blank" class="btn-sm btn-outline" title="In hóa đơn">🖨 In</a>
           </form>
          </td>
         </tr>
@@ -196,22 +206,157 @@
   </c:choose>
  </section>
 
- <!-- PHẦN 2: KHO SÁCH VẬT LÝ TRÊN KỆ TẠI CHI NHÁNH -->
+ <!-- PHẦN 2: KHO SÁCH VẬT LÝ TRÊN KỆ TẠI CHI NHÁNH (MANAGER & ADMIN CÓ QUYỀN THÊM, SỬA, XÓA) -->
  <section class="section-card" id="inventory-section">
   <div class="section-card-head">
    <div>
-    <h2>📦 Danh mục sách trên kệ chi nhánh <small style="font-size:13px; font-weight:normal; color:#64748b;">(${storeCopies.size()} bản)</small></h2>
-    <span style="font-size:12.5px; color:#64748b;">Kiểm tra vị trí kệ, tình trạng sách cũ và tình trạng sẵn sàng bán.</span>
+    <h2>📦 Quản lý sách tại chi nhánh <c:out value="${store.storeName}"/> <small style="font-size:13px; font-weight:normal; color:#64748b;">(${storeCopies.size()} bản sách)</small></h2>
+    <span style="font-size:12.5px; color:#64748b;">
+     <c:choose>
+      <c:when test="${userContext.isAdmin() || userContext.isManager()}">
+       Bạn có quyền <strong>Thêm mới, Chỉnh sửa (vị trí kệ, tình trạng, giá nhập, giá bán, thông tin sách) và Xóa sách</strong> thuộc chi nhánh <c:out value="${store.storeName}"/>.
+      </c:when>
+      <c:otherwise>
+       Kiểm tra vị trí kệ, tình trạng sách cũ và tình trạng sẵn sàng bán tại chi nhánh.
+      </c:otherwise>
+     </c:choose>
+    </span>
    </div>
    <form method="get" action="${base}/admin/my-store#inventory-section" style="display:flex; gap:6px;">
     <input type="hidden" name="storeId" value="${store.storeId}">
-    <input type="text" name="q" value="<c:out value='${q}'/>" placeholder="Tìm tên sách, vị trí kệ..." style="padding:5px 10px; font-size:13px; border-radius:6px; border:1px solid #cbd5e1; width:200px;">
+    <input type="text" name="q" value="<c:out value='${q}'/>" placeholder="Tìm tên sách, mã bản, kệ..." style="padding:5px 10px; font-size:13px; border-radius:6px; border:1px solid #cbd5e1; width:210px;">
     <button type="submit" class="btn-sm btn-outline">Tìm</button>
     <c:if test="${not empty q}">
-     <a href="${base}/admin/my-store?storeId=${store.storeId}#inventory-section" class="btn-sm btn-outline">Xóa</a>
+     <a href="${base}/admin/my-store?storeId=${store.storeId}#inventory-section" class="btn-sm btn-outline">Xóa lọc</a>
     </c:if>
    </form>
   </div>
+
+  <!-- KHU VỰC THÊM SÁCH MỚI DÀNH CHO QUẢN LÝ CHI NHÁNH (MANAGER) & ADMIN -->
+  <c:if test="${userContext.isAdmin() || userContext.isManager()}">
+   <div class="manager-book-tools">
+    <!-- Form 1: Thêm đầu sách mới kèm bản sách vào chi nhánh -->
+    <div class="tool-box">
+     <h3>➕ Thêm đầu sách mới vào chi nhánh <c:out value="${store.storeName}"/></h3>
+     <form method="post" action="${base}/admin/books/create">
+      <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+      <input type="hidden" name="storeId" value="${store.storeId}">
+      <input type="hidden" name="source" value="my-store">
+      <div class="tool-grid">
+       <div class="tool-field">
+        <label>Tên sách *</label>
+        <input type="text" name="title" required placeholder="Nhập tên sách mới…">
+       </div>
+       <div class="tool-field">
+        <label>Danh mục *</label>
+        <select name="categoryId" required>
+         <c:forEach items="${categories}" var="cat">
+          <option value="${cat.id}"><c:out value="${cat.name}"/></option>
+         </c:forEach>
+        </select>
+       </div>
+       <div class="tool-field">
+        <label>Tác giả</label>
+        <input type="text" name="authorName" placeholder="Nguyễn Nhật Ánh…">
+       </div>
+       <div class="tool-field">
+        <label>Nhà xuất bản</label>
+        <input type="text" name="publisherName" placeholder="NXB Trẻ…">
+       </div>
+      </div>
+      <div class="tool-grid">
+       <div class="tool-field">
+        <label>Tình trạng sách *</label>
+        <select name="conditionId" required>
+         <c:forEach items="${conditions}" var="cond">
+          <option value="${cond.id}"><c:out value="${cond.name}"/></option>
+         </c:forEach>
+        </select>
+       </div>
+       <div class="tool-field">
+        <label>Vị trí kệ</label>
+        <input type="text" name="shelfLocation" value="Kệ A1" placeholder="Kệ A1">
+       </div>
+       <div class="tool-field">
+        <label>Giá nhập (₫) *</label>
+        <input type="number" name="costPrice" min="0" step="1000" value="45000" required>
+       </div>
+       <div class="tool-field">
+        <label>Giá bán (₫) *</label>
+        <input type="number" name="salePrice" min="1000" step="1000" value="75000" required>
+       </div>
+      </div>
+      <div class="tool-grid">
+       <div class="tool-field">
+        <label>Số lượng bản nhập</label>
+        <input type="number" name="copyQuantity" min="1" max="20" value="2" required>
+       </div>
+       <div class="tool-field">
+        <label>Năm XB</label>
+        <input type="number" name="publishYear" value="2023">
+       </div>
+       <div class="tool-field">
+        <label>ISBN</label>
+        <input type="text" name="isbn" placeholder="978604...">
+       </div>
+       <div class="tool-field">
+        <label>Mô tả ngắn</label>
+        <input type="text" name="description" placeholder="Giới thiệu nội dung sách…">
+       </div>
+      </div>
+      <button type="submit" class="btn-sm btn-primary">+ Thêm đầu sách vào chi nhánh</button>
+     </form>
+    </div>
+
+    <!-- Form 2: Nhập thêm bản sách (Copy) của đầu sách đã có vào kệ chi nhánh -->
+    <div class="tool-box">
+     <h3>📥 Nhập thêm bản sách (Copy) của đầu sách đã có vào kệ chi nhánh</h3>
+     <form method="post" action="${base}/admin/books/copies/add-to-store">
+      <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+      <input type="hidden" name="storeId" value="${store.storeId}">
+      <div class="tool-grid">
+       <div class="tool-field" style="grid-column: 1 / -1;">
+        <label>Chọn đầu sách trong danh mục *</label>
+        <select name="bookId" required>
+         <c:forEach items="${allBooks}" var="b">
+          <option value="${b.id}">MS-<c:out value="${b.id}"/> · <c:out value="${b.title}"/> (<c:out value="${b.categoryName}"/>)</option>
+         </c:forEach>
+        </select>
+       </div>
+      </div>
+      <div class="tool-grid">
+       <div class="tool-field">
+        <label>Tình trạng sách *</label>
+        <select name="conditionId" required>
+         <c:forEach items="${conditions}" var="cond">
+          <option value="${cond.id}"><c:out value="${cond.name}"/></option>
+         </c:forEach>
+        </select>
+       </div>
+       <div class="tool-field">
+        <label>Vị trí kệ *</label>
+        <input type="text" name="shelfLocation" value="Kệ B1" required placeholder="Kệ B1">
+       </div>
+       <div class="tool-field">
+        <label>Giá nhập (₫) *</label>
+        <input type="number" name="costPrice" min="0" step="1000" value="40000" required>
+       </div>
+       <div class="tool-field">
+        <label>Giá bán (₫) *</label>
+        <input type="number" name="salePrice" min="1000" step="1000" value="70000" required>
+       </div>
+      </div>
+      <div class="tool-grid">
+       <div class="tool-field" style="grid-column: 1 / -1;">
+        <label>Ghi chú tình trạng bản sách</label>
+        <input type="text" name="conditionNotes" placeholder="Bìa đẹp, gáy chắc chắn, trang giấy phẳng…">
+       </div>
+      </div>
+      <button type="submit" class="btn-sm btn-success">+ Nhập bản sách lên kệ chi nhánh</button>
+     </form>
+    </div>
+   </div>
+  </c:if>
 
   <c:choose>
    <c:when test="${empty storeCopies}">
@@ -228,8 +373,8 @@
         <th>Tên sách</th>
         <th>Vị trí kệ</th>
         <th>Tình trạng sách</th>
-        <th>Giá nhập</th>
-        <th>Giá bán</th>
+        <th>Giá nhập (₫)</th>
+        <th>Giá bán (₫)</th>
         <th>Trạng thái</th>
         <th>Hành động</th>
        </tr>
@@ -243,29 +388,76 @@
            <img src="${base}<c:out value='${c.cover}'/>" alt="" style="width:32px; height:44px; object-fit:cover; border-radius:4px;">
            <div>
             <strong style="display:block; font-size:13px;"><c:out value="${c.title}"/></strong>
-            <small style="color:#64748b;"><c:out value="${c.authors}"/></small>
+            <small style="color:#64748b;">MS-<c:out value="${c.bookId}"/></small>
            </div>
           </div>
          </td>
-         <td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:12px; font-family:monospace;"><c:out value="${c.shelfLocation}"/></span></td>
-         <td>
-          <span style="font-weight:600;"><c:out value="${c.conditionLabel}"/></span>
-          <c:if test="${not empty c.conditionNotes}"><br><small style="color:#64748b;"><c:out value="${c.conditionNotes}"/></small></c:if>
-         </td>
-         <td><small style="color:#64748b;"><c:out value="${c.costPriceLabel}"/></small></td>
-         <td><strong style="color:#0f172a;"><c:out value="${c.salePriceLabel}"/></strong></td>
-         <td>
-          <c:choose>
-           <c:when test="${c.status == 'AVAILABLE'}"><span class="status-badge available">Có sẵn</span></c:when>
-           <c:when test="${c.status == 'HOLD'}"><span class="status-badge pending">Giữ hàng</span></c:when>
-           <c:when test="${c.status == 'TRANSFERRING'}"><span class="status-badge transit">Đang chuyển</span></c:when>
-           <c:when test="${c.status == 'SOLD'}"><span class="status-badge" style="background:#f1f5f9;color:#64748b;">Đã bán</span></c:when>
-           <c:otherwise><span class="status-badge"><c:out value="${c.status}"/></span></c:otherwise>
-          </c:choose>
-         </td>
-         <td>
-          <a href="${base}/books/${c.bookId}" target="_blank" class="btn-sm btn-outline">Xem sách ↗</a>
-         </td>
+         <c:choose>
+          <c:when test="${userContext.isAdmin() || userContext.isManager()}">
+           <td>
+            <input type="text" name="shelfLocation" form="branch-copy-${c.copyId}" value="<c:out value='${c.shelfLocation}'/>" class="inline-input" style="width:85px;">
+           </td>
+           <td>
+            <select name="conditionId" form="branch-copy-${c.copyId}" class="inline-input" style="margin-bottom:4px; display:block;">
+             <c:forEach items="${conditions}" var="cond">
+              <option value="${cond.id}" ${c.conditionId == cond.id ? 'selected' : ''}><c:out value="${cond.name}"/></option>
+             </c:forEach>
+            </select>
+            <input type="text" name="conditionNotes" form="branch-copy-${c.copyId}" value="<c:out value='${c.conditionNotes}'/>" placeholder="Ghi chú…" class="inline-input" style="width:130px; font-size:11.5px;">
+           </td>
+           <td>
+            <input type="number" name="costPrice" form="branch-copy-${c.copyId}" value="${c.costPrice}" min="0" step="1000" required class="inline-input" style="width:95px;">
+           </td>
+           <td>
+            <input type="number" name="salePrice" form="branch-copy-${c.copyId}" value="${c.salePrice}" min="1000" step="1000" required class="inline-input" style="width:95px; font-weight:600;">
+           </td>
+           <td>
+            <select name="status" form="branch-copy-${c.copyId}" class="inline-input">
+             <option value="AVAILABLE" ${c.status == 'AVAILABLE' ? 'selected' : ''}>Có sẵn</option>
+             <option value="RESERVED" ${c.status == 'RESERVED' ? 'selected' : ''}>Giữ hàng</option>
+             <option value="SOLD" ${c.status == 'SOLD' ? 'selected' : ''}>Đã bán</option>
+             <option value="DAMAGED" ${c.status == 'DAMAGED' ? 'selected' : ''}>Hư hỏng</option>
+            </select>
+           </td>
+           <td>
+            <div style="display:flex; gap:5px; flex-wrap:wrap; align-items:center;">
+             <form id="branch-copy-${c.copyId}" method="post" action="${base}/admin/books/${c.bookId}/copies/${c.copyId}/update" style="display:inline;">
+              <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+              <input type="hidden" name="storeId" value="${store.storeId}">
+              <input type="hidden" name="source" value="my-store">
+              <button type="submit" class="btn-sm btn-primary" title="Lưu thay đổi bản sách">💾 Lưu</button>
+             </form>
+             <a href="${base}/admin/books/${c.bookId}/edit" class="btn-sm btn-outline" title="Sửa thông tin đầu sách">✏️ Sửa sách</a>
+             <form method="post" action="${base}/admin/books/${c.bookId}/copies/${c.copyId}/delete" style="display:inline;">
+              <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+              <input type="hidden" name="source" value="my-store">
+              <button type="submit" class="btn-sm btn-danger" title="Xóa bản sách này khỏi chi nhánh">🗑 Xóa</button>
+             </form>
+            </div>
+           </td>
+          </c:when>
+          <c:otherwise>
+           <td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:12px; font-family:monospace;"><c:out value="${c.shelfLocation}"/></span></td>
+           <td>
+            <span style="font-weight:600;"><c:out value="${c.conditionLabel}"/></span>
+            <c:if test="${not empty c.conditionNotes}"><br><small style="color:#64748b;"><c:out value="${c.conditionNotes}"/></small></c:if>
+           </td>
+           <td><small style="color:#64748b;"><c:out value="${c.costPriceLabel}"/></small></td>
+           <td><strong style="color:#0f172a;"><c:out value="${c.salePriceLabel}"/></strong></td>
+           <td>
+            <c:choose>
+             <c:when test="${c.status == 'AVAILABLE'}"><span class="status-badge available">Có sẵn</span></c:when>
+             <c:when test="${c.status == 'HOLD' or c.status == 'RESERVED'}"><span class="status-badge pending">Giữ hàng</span></c:when>
+             <c:when test="${c.status == 'TRANSFERRING' or c.status == 'IN_TRANSIT'}"><span class="status-badge transit">Đang chuyển</span></c:when>
+             <c:when test="${c.status == 'SOLD'}"><span class="status-badge" style="background:#f1f5f9;color:#64748b;">Đã bán</span></c:when>
+             <c:otherwise><span class="status-badge"><c:out value="${c.status}"/></span></c:otherwise>
+            </c:choose>
+           </td>
+           <td>
+            <a href="${base}/books/${c.bookId}" target="_blank" class="btn-sm btn-outline">Xem sách ↗</a>
+           </td>
+          </c:otherwise>
+         </c:choose>
         </tr>
        </c:forEach>
       </tbody>
@@ -330,7 +522,7 @@
          <td><small><c:out value="${t.requestedBy}"/></small></td>
          <td>
           <c:choose>
-           <c:when test="${t.status == 'PENDING'}"><span class="status-badge pending">Chờ Admin duyệt</span></c:when>
+           <c:when test="${t.status == 'DRAFT' or t.status == 'PENDING'}"><span class="status-badge pending">Chờ Admin duyệt</span></c:when>
            <c:when test="${t.status == 'APPROVED'}"><span class="status-badge confirmed">Admin đã duyệt</span></c:when>
            <c:when test="${t.status == 'IN_TRANSIT'}"><span class="status-badge transit">Đang vận chuyển</span></c:when>
            <c:when test="${t.status == 'RECEIVED'}"><span class="status-badge completed">Đã nhập kho</span></c:when>
@@ -340,7 +532,7 @@
          <td>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
            <!-- Nếu ADMIN: Có thể duyệt -->
-           <c:if test="${userContext.isAdmin() and t.status == 'PENDING'}">
+           <c:if test="${userContext.isAdmin() and (t.status == 'DRAFT' or t.status == 'PENDING')}">
             <form action="${base}/admin/stores/transfers/${t.id}/approve" method="post" style="display:inline;">
              <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
              <button type="submit" class="btn-sm btn-primary">✓ Duyệt phiếu (Admin)</button>
@@ -350,6 +542,7 @@
            <!-- Nếu là nơi gửi và phiếu đã duyệt: Xuất kho -->
            <c:if test="${t.fromStoreId == store.storeId and t.status == 'APPROVED'}">
             <form action="${base}/admin/stores/transfers/${t.id}/ship" method="post" style="display:inline;">
+             <input type="hidden" name="source" value="my-store">
              <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
              <button type="submit" class="btn-sm btn-warning">🚚 Xuất kho vận chuyển</button>
             </form>
@@ -358,6 +551,7 @@
            <!-- Nếu là nơi nhận và phiếu đang vận chuyển: Nhập kho -->
            <c:if test="${t.toStoreId == store.storeId and t.status == 'IN_TRANSIT'}">
             <form action="${base}/admin/stores/transfers/${t.id}/receive" method="post" style="display:inline;">
+             <input type="hidden" name="source" value="my-store">
              <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
              <button type="submit" class="btn-sm btn-success">📥 Nhập kho nhận sách</button>
             </form>

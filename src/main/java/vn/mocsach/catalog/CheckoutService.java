@@ -273,9 +273,17 @@ public class CheckoutService {
     SELECT COUNT(*)
     FROM dbo.UserRoles ur
     JOIN dbo.Roles r ON r.RoleId = ur.RoleId
-    WHERE ur.UserId = ? AND r.RoleCode IN ('ADMIN', 'STAFF')
+    WHERE ur.UserId = ? AND r.RoleCode IN ('ADMIN', 'MANAGER', 'STAFF')
     """, Integer.class, userId);
-   return c != null && c > 0;
+   if (c != null && c > 0) return true;
+  } catch (DataAccessException ignored) {}
+  try {
+   Integer s = jdbc.queryForObject("""
+    SELECT COUNT(*)
+    FROM dbo.StaffStoreAssignments
+    WHERE UserId = ? AND Status = 'ACTIVE'
+    """, Integer.class, userId);
+   return s != null && s > 0;
   } catch (DataAccessException ex) {
    return false;
   }

@@ -17,17 +17,19 @@ public class StoreAdminController {
  private final UserRepository users;
  private final CartService cart;
  private final NotificationService notifications;
+ private final AdminService adminService;
 
  public StoreAdminController(
   StoreService storeService,
   UserRepository users,
   CartService cart,
-  NotificationService notifications
+  NotificationService notifications, AdminService adminService
  ) {
   this.storeService = storeService;
   this.users = users;
   this.cart = cart;
   this.notifications = notifications;
+  this.adminService = adminService;
  }
 
  private UserAccount user(Principal p) {
@@ -85,6 +87,9 @@ public class StoreAdminController {
   model.addAttribute("storeOrders", storeService.listOrdersForStore(targetStoreId, orderStatus));
   model.addAttribute("storeTransfers", storeService.listStockTransfersForStore(targetStoreId));
   model.addAttribute("activeStores", storeService.activeStores());
+  model.addAttribute("categories", adminService.categories());
+  model.addAttribute("conditions", adminService.conditions());
+  model.addAttribute("allBooks", adminService.listBooksForAdmin("", 0));
   model.addAttribute("q", q);
   model.addAttribute("orderStatus", orderStatus);
 
@@ -128,6 +133,9 @@ public class StoreAdminController {
   model.addAttribute("tab", activeTab);
   model.addAttribute("stores", storeService.listStoresWithStats());
   model.addAttribute("activeStores", storeService.activeStores());
+  model.addAttribute("categories", adminService.categories());
+  model.addAttribute("conditions", adminService.conditions());
+  model.addAttribute("allBooks", adminService.listBooksForAdmin("", 0));
 
   // Staff assignments tab based on role
   if (ctx.isAdmin()) {

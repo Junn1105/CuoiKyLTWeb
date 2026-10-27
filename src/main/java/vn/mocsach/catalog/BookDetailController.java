@@ -46,7 +46,8 @@ public class BookDetailController {
 
   if (principal != null) {
    var u = users.findByUsernameIgnoreCaseOrEmailIgnoreCase(principal.getName(), principal.getName()).orElseThrow();
-   boolean staffOrAdmin = admin.isStaffOrAdmin(u.id);
+   var ctx = storeService.getUserStoreContext(u.id);
+   boolean staffOrAdmin = admin.isStaffOrAdmin(u.id) || ctx.isStaffOrAdmin();
    model.addAttribute("displayName", u.fullName);
    model.addAttribute("ownReview", service.ownReview(id, u.id));
    model.addAttribute("cartCount", cart.count(u.id));
@@ -54,9 +55,17 @@ public class BookDetailController {
    model.addAttribute("notifications", notifications.list(u.id, 12));
    model.addAttribute("unreadCount", notifications.unreadCount(u.id));
    model.addAttribute("isStaffOrAdmin", staffOrAdmin);
+   model.addAttribute("userContext", ctx);
    if (staffOrAdmin) {
-    model.addAttribute("staffCopies", admin.bookCopiesForStaff(id));
-    model.addAttribute("stores", admin.activeStores());
+    var copies = admin.bookCopiesForStaff(id);
+    var stores = admin.activeStores();
+    if (!ctx.isAdmin() && ctx.storeId() != null) {
+     int myStoreId = ctx.storeId();
+     copies = copies.stream().filter(cp -> ((Number) cp.get("storeId")).intValue() == myStoreId).toList();
+     stores = stores.stream().filter(st -> ((Number) st.get("id")).intValue() == myStoreId).toList();
+    }
+    model.addAttribute("staffCopies", copies);
+    model.addAttribute("stores", stores);
     model.addAttribute("conditions", admin.conditions());
    }
   }

@@ -41,9 +41,13 @@ public class AdminService {
     SELECT COUNT(*)
     FROM dbo.UserRoles ur
     JOIN dbo.Roles r ON r.RoleId = ur.RoleId
-    WHERE ur.UserId = ? AND r.RoleCode IN ('ADMIN', 'STAFF')
+    WHERE ur.UserId = ? AND r.RoleCode IN ('ADMIN', 'STAFF', 'MANAGER')
     """, Integer.class, userId);
-   return c != null && c > 0;
+   if (c != null && c > 0) return true;
+  } catch (DataAccessException ignored) {}
+  try {
+   Integer a = jdbc.queryForObject("SELECT COUNT(*) FROM dbo.StaffStoreAssignments WHERE UserId = ? AND Status = 'ACTIVE'", Integer.class, userId);
+   return a != null && a > 0;
   } catch (DataAccessException ex) {
    return false;
   }
@@ -259,6 +263,15 @@ public class AdminService {
   Integer publishYear, String translator, String isbn, String coverImage, String description,
   int storeId, int conditionId, BigDecimal costPrice, BigDecimal salePrice, int copyQuantity
  ) {
+  return createBook(title, categoryId, authorName, publisherName, publishYear, translator, isbn, coverImage, description, storeId, conditionId, costPrice, salePrice, copyQuantity, "Kệ A1");
+ }
+
+ @Transactional
+ public int createBook(
+  String title, int categoryId, String authorName, String publisherName,
+  Integer publishYear, String translator, String isbn, String coverImage, String description,
+  int storeId, int conditionId, BigDecimal costPrice, BigDecimal salePrice, int copyQuantity, String shelfLocation
+ ) {
   String cleanTitle = clean(title);
   if (cleanTitle.length() < 2 || cleanTitle.length() > 255)
    throw new AuthProblem("Tên sách cần từ 2 đến 255 ký tự.");
@@ -294,8 +307,9 @@ public class AdminService {
   syncBookAuthors(bookId, authorName);
 
   int qty = Math.max(1, Math.min(20, copyQuantity));
+  String shelf = clean(shelfLocation).isEmpty() ? "Kệ A1" : clean(shelfLocation);
   for (int i = 0; i < qty; i++) {
-   addCopy(bookId, storeId, conditionId, costPrice, salePrice, "Bản sách tuyển chọn", "Kệ A1");
+   addCopy(bookId, storeId, conditionId, costPrice, salePrice, "Bản sách tuyển chọn", shelf);
   }
   return bookId;
  }
@@ -370,6 +384,11 @@ public class AdminService {
 
  @Transactional
  public void updateCopy(int copyId, int storeId, int conditionId, BigDecimal costPrice, BigDecimal salePrice, String status, String conditionNotes) {
+  updateCopy(copyId, storeId, conditionId, costPrice, salePrice, status, conditionNotes, null);
+ }
+
+ @Transactional
+ public void updateCopy(int copyId, int storeId, int conditionId, BigDecimal costPrice, BigDecimal salePrice, String status, String conditionNotes, String shelfLocation) {
   if (costPrice == null || costPrice.compareTo(BigDecimal.ZERO) < 0)
    throw new AuthProblem("Giá nhập (CostPrice) phải lớn hơn hoặc bằng 0.");
   if (salePrice == null || salePrice.compareTo(BigDecimal.ZERO) <= 0)
@@ -378,12 +397,42 @@ public class AdminService {
    case "AVAILABLE", "RESERVED", "SOLD", "DAMAGED", "LOST", "IN_TRANSIT" -> clean(status).toUpperCase(Locale.ROOT);
    default -> "AVAILABLE";
   };
-  jdbc.update("""
-   UPDATE dbo.BookCopies
-   SET StoreId=?, ConditionId=?, CostPrice=?, SalePrice=?, Status=?, ConditionNotes=?, Version=Version+1, UpdatedAt=CURRENT_TIMESTAMP
-   WHERE CopyId=?
-   """, storeId, conditionId, costPrice, salePrice, validStatus,
-   clean(conditionNotes).isEmpty() ? null : clean(conditionNotes), copyId);
+  if (shelfLocation != null && !clean(shelfLocation).isEmpty()) {
+   jdbc.update("""
+    UPDATE dbo.BookCopies
+    SET StoreId=?, ConditionId=?, CostPrice=?, SalePrice=?, Status=?, ConditionNotes=?, ShelfLocation=?, Version=Version+1, UpdatedAt=CURRENT_TIMESTAMP
+    WHERE CopyId=?
+    """, storeId, conditionId, costPrice, salePrice, validStatus,
+    clean(conditionNotes).isEmpty() ? null : clean(conditionNotes), clean(shelfLocation), copyId);
+  } else {
+   jdbc.update("""
+    UPDATE dbo.BookCopies
+    SET StoreId=?, ConditionId=?, CostPrice=?, SalePrice=?, Status=?, ConditionNotes=?, Version=Version+1, UpdatedAt=CURRENT_TIMESTAMP
+    WHERE CopyId=?
+    """, storeId, conditionId, costPrice, salePrice, validStatus,
+    clean(conditionNotes).isEmpty() ? null : clean(conditionNotes), copyId);
+  }
+ }
+
+ public Integer getCopyStoreId(int copyId) {
+  try {
+   var rows = jdbc.queryForList("SELECT StoreId FROM dbo.BookCopies WHERE CopyId=?", Integer.class, copyId);
+   return rows.isEmpty() ? null : rows.get(0);
+  } catch (DataAccessException ex) {
+   return null;
+  }
+ }
+
+ @Transactional
+ public void deleteBookFromStore(int bookId, int storeId) {
+  var copyIds = jdbc.queryForList("SELECT CopyId FROM dbo.BookCopies WHERE BookId=? AND StoreId=?", Integer.class, bookId, storeId);
+  for (Integer copyId : copyIds) {
+   deleteCopy(copyId);
+  }
+  Integer remaining = jdbc.queryForObject("SELECT COUNT(*) FROM dbo.BookCopies WHERE BookId=?", Integer.class, bookId);
+  if (remaining == null || remaining == 0) {
+   deleteBook(bookId);
+  }
  }
 
  @Transactional
@@ -393,6 +442,9 @@ public class AdminService {
   try { jdbc.update("DELETE FROM dbo.StockTransferItems WHERE CopyId=?", copyId); } catch (DataAccessException ignored) {}
   try { jdbc.update("DELETE FROM dbo.StocktakeItems WHERE CopyId=?", copyId); } catch (DataAccessException ignored) {}
   try { jdbc.update("DELETE FROM dbo.InventoryMovements WHERE CopyId=?", copyId); } catch (DataAccessException ignored) {}
+  try { jdbc.update("DELETE FROM dbo.StockReservations WHERE OrderItemId IN (SELECT OrderItemId FROM dbo.OrderItems WHERE CopyId=?)", copyId); } catch (DataAccessException ignored) {}
+  try { jdbc.update("DELETE FROM dbo.SalesReturnItems WHERE OrderItemId IN (SELECT OrderItemId FROM dbo.OrderItems WHERE CopyId=?)", copyId); } catch (DataAccessException ignored) {}
+  jdbc.update("UPDATE dbo.BookCopies SET PurchaseReceiptItemId=NULL WHERE CopyId=?", copyId);
   jdbc.update("DELETE FROM dbo.OrderItems WHERE CopyId=?", copyId);
   jdbc.update("DELETE FROM dbo.BookCopies WHERE CopyId=?", copyId);
  }

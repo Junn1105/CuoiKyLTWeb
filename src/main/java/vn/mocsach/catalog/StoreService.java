@@ -235,10 +235,13 @@ public class StoreService {
   String username = users.get(0).get("username");
   String fullName = users.get(0).get("fullName");
 
-  List<String> roles = jdbc.queryForList(
-   "SELECT r.RoleCode FROM dbo.Roles r JOIN dbo.UserRoles ur ON ur.RoleId = r.RoleId WHERE ur.UserId = ?",
-   String.class, userId
-  );
+  List<String> roles = List.of();
+  try {
+   roles = jdbc.queryForList(
+    "SELECT r.RoleCode FROM dbo.Roles r JOIN dbo.UserRoles ur ON ur.RoleId = r.RoleId WHERE ur.UserId = ?",
+    String.class, userId
+   );
+  } catch (DataAccessException ignored) {}
   boolean isAdmin = roles.contains("ADMIN");
   boolean hasStaffRole = roles.contains("STAFF") || roles.contains("MANAGER");
 
@@ -249,20 +252,23 @@ public class StoreService {
    WHERE a.UserId = ? AND a.Status = 'ACTIVE'
    ORDER BY CASE WHEN a.StoreRole = 'MANAGER' THEN 0 ELSE 1 END, a.AssignmentId DESC
    """;
-  var assignments = jdbc.query(assignSql, (rs, i) -> {
-   var m = new HashMap<String, Object>();
-   m.put("storeId", rs.getInt("StoreId"));
-   m.put("storeCode", rs.getString("StoreCode"));
-   m.put("storeName", rs.getString("StoreName"));
-   m.put("storeRole", rs.getString("StoreRole"));
-   return m;
-  }, userId);
+  List<Map<String, Object>> assignments = List.of();
+  try {
+   assignments = jdbc.query(assignSql, (rs, i) -> {
+    var m = new HashMap<String, Object>();
+    m.put("storeId", rs.getInt("StoreId"));
+    m.put("storeCode", rs.getString("StoreCode"));
+    m.put("storeName", rs.getString("StoreName"));
+    m.put("storeRole", rs.getString("StoreRole"));
+    return m;
+   }, userId);
+  } catch (DataAccessException ignored) {}
 
   Integer storeId = null;
   String storeCode = null;
   String storeName = null;
   String storeRole = null;
-  boolean isManager = false;
+  boolean isManager = roles.contains("MANAGER");
 
   if (!assignments.isEmpty()) {
    var first = assignments.get(0);
@@ -270,7 +276,7 @@ public class StoreService {
    storeCode = (String) first.get("storeCode");
    storeName = (String) first.get("storeName");
    storeRole = (String) first.get("storeRole");
-   isManager = "MANAGER".equalsIgnoreCase(storeRole);
+   isManager = isManager || "MANAGER".equalsIgnoreCase(storeRole);
   }
 
   boolean isStaff = hasStaffRole || !assignments.isEmpty();
@@ -423,7 +429,9 @@ public class StoreService {
    BigDecimal totalValue = rs.getBigDecimal("totalValue");
 
    m.put("transferId", id);
+   m.put("id", id);
    m.put("transferCode", rs.getString("TransferCode"));
+   m.put("code", rs.getString("TransferCode"));
    m.put("fromStoreId", rs.getInt("FromStoreId"));
    m.put("fromStoreName", rs.getString("fromStoreName"));
    m.put("fromStoreCode", rs.getString("fromStoreCode"));
@@ -433,8 +441,10 @@ public class StoreService {
    m.put("status", st);
    m.put("statusLabel", transferStatusLabel(st));
    m.put("requesterName", rs.getString("requesterName"));
+   m.put("requestedBy", rs.getString("requesterName"));
    m.put("approverName", rs.getString("approverName") == null ? "Chưa duyệt" : rs.getString("approverName"));
    m.put("itemCount", rs.getInt("itemCount"));
+   m.put("copyCount", rs.getInt("itemCount"));
    m.put("totalValue", totalValue);
    m.put("totalValueLabel", CheckoutService.vnd(totalValue));
    m.put("createdAt", formatTime(rs.getTimestamp("CreatedAt")));
@@ -505,8 +515,10 @@ public class StoreService {
    m.put("copyCode", rs.getString("CopyCode"));
    m.put("bookId", rs.getInt("BookId"));
    m.put("bookTitle", rs.getString("bookTitle"));
+   m.put("title", rs.getString("bookTitle"));
    m.put("conditionId", rs.getInt("ConditionId"));
    m.put("conditionName", rs.getString("ConditionName"));
+   m.put("conditionLabel", rs.getString("ConditionName"));
    m.put("shelfLocation", rs.getString("ShelfLocation") == null ? "Chưa xếp kệ" : rs.getString("ShelfLocation"));
    m.put("salePriceLabel", CheckoutService.vnd(rs.getBigDecimal("SalePrice")));
    m.put("costPriceLabel", CheckoutService.vnd(rs.getBigDecimal("CostPrice")));
@@ -791,7 +803,7 @@ public class StoreService {
   String sql = """
    SELECT bc.CopyId, bc.CopyCode, b.BookId, b.Title AS bookTitle, b.CoverImage AS cover,
           cond.ConditionId, cond.ConditionName, bc.CostPrice, bc.SalePrice,
-          bc.ShelfLocation, bc.Status, bc.UpdatedAt
+          bc.ConditionNotes, bc.ShelfLocation, bc.Status, bc.UpdatedAt
    FROM dbo.BookCopies bc
    JOIN dbo.Books b ON b.BookId = bc.BookId
    JOIN dbo.BookConditions cond ON cond.ConditionId = bc.ConditionId
@@ -801,13 +813,22 @@ public class StoreService {
 
   return jdbc.query(sql, (rs, i) -> {
    var m = new LinkedHashMap<String, Object>();
-   m.put("copyId", rs.getInt("CopyId"));
-   m.put("copyCode", rs.getString("CopyCode"));
+   int copyId = rs.getInt("CopyId");
+   String copyCode = rs.getString("CopyCode");
+   String bookTitle = rs.getString("bookTitle");
+   String condName = rs.getString("ConditionName");
+   m.put("copyId", copyId);
+   m.put("id", copyCode != null ? copyCode : String.valueOf(copyId));
+   m.put("copyCode", copyCode);
    m.put("bookId", rs.getInt("BookId"));
-   m.put("bookTitle", rs.getString("bookTitle"));
+   m.put("bookTitle", bookTitle);
+   m.put("title", bookTitle);
+   m.put("authors", "");
    m.put("cover", rs.getString("cover") == null ? "/images/book-placeholder.svg" : rs.getString("cover"));
    m.put("conditionId", rs.getInt("ConditionId"));
-   m.put("conditionName", rs.getString("ConditionName"));
+   m.put("conditionName", condName);
+   m.put("conditionLabel", condName);
+   m.put("conditionNotes", Objects.toString(rs.getString("ConditionNotes"), ""));
    BigDecimal cost = rs.getBigDecimal("CostPrice");
    BigDecimal sale = rs.getBigDecimal("SalePrice");
    m.put("costPrice", cost);
@@ -843,22 +864,34 @@ public class StoreService {
 
   return jdbc.query(sql, (rs, i) -> {
    var m = new LinkedHashMap<String, Object>();
-   m.put("orderId", rs.getInt("OrderId"));
+   int orderId = rs.getInt("OrderId");
+   String custName = rs.getString("customerName") == null ? "Khách vãng lai" : rs.getString("customerName");
+   String recName = rs.getString("RecipientName");
+   String recPhone = rs.getString("RecipientPhone");
+   String displayFullName = (recName != null && !recName.isBlank()) ? recName : custName;
+   String displayPhone = (recPhone != null && !recPhone.isBlank()) ? recPhone : "—";
+   String shipAddr = rs.getString("shippingAddress");
+   String createdAt = formatTime(rs.getTimestamp("CreatedAt"));
+   m.put("orderId", orderId);
+   m.put("id", orderId);
    m.put("orderCode", rs.getString("OrderCode"));
    m.put("storeId", rs.getInt("StoreId"));
    m.put("storeName", rs.getString("StoreName"));
    m.put("customerId", rs.getObject("CustomerId"));
-   m.put("customerName", rs.getString("customerName") == null ? "Khách vãng lai" : rs.getString("customerName"));
-   m.put("recipientName", rs.getString("RecipientName"));
-   m.put("recipientPhone", rs.getString("RecipientPhone"));
-   m.put("shippingAddress", rs.getString("shippingAddress"));
+   m.put("customerName", custName);
+   m.put("recipientName", displayFullName);
+   m.put("fullName", displayFullName);
+   m.put("recipientPhone", displayPhone);
+   m.put("phone", displayPhone);
+   m.put("shippingAddress", (shipAddr != null && !shipAddr.isBlank()) ? shipAddr : "Mua trực tiếp tại quầy");
    BigDecimal total = rs.getBigDecimal("TotalAmount");
    m.put("totalAmount", total);
    m.put("totalAmountLabel", CheckoutService.vnd(total));
    String ordStatus = rs.getString("Status");
    m.put("status", ordStatus);
    m.put("itemCount", rs.getInt("itemCount"));
-   m.put("createdAt", formatTime(rs.getTimestamp("CreatedAt")));
+   m.put("createdAt", createdAt);
+   m.put("orderDate", createdAt);
    return (Map<String, Object>) m;
   }, storeId, st, st);
  }
