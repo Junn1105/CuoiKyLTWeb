@@ -438,6 +438,11 @@ public class AdminService {
   return rows.stream().filter(r -> filter.equals(r.get("status"))).toList();
  }
 
+ public Integer getOrderStoreId(int orderId) {
+  var list = jdbc.queryForList("SELECT StoreId FROM dbo.Orders WHERE OrderId = ?", Integer.class, orderId);
+  return list.isEmpty() ? null : list.get(0);
+ }
+
  @Transactional
  public void updateOrderStatus(int staffUserId, int orderId, String targetStatus) {
   String newStatus = clean(targetStatus).toUpperCase(Locale.ROOT);

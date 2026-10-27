@@ -3,3 +3,9 @@
 @media(max-width:980px){.product-grid{grid-template-columns:340px minmax(0,1fr)}.main-cover{height:330px}.related-section .book-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:780px){.product-grid{grid-template-columns:1fr}.product-gallery{position:static}.summary-meta{grid-template-columns:1fr}.related-section .book-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:500px){.detail-page{padding:10px}.purchase-actions,.related-section .book-grid{grid-template-columns:1fr}.specifications div{grid-template-columns:120px minmax(0,1fr)}}
+.store-availability-box{margin:12px 0;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px}
+.store-availability-box h4{margin:0 0 8px;font-size:13.5px;color:#1e293b;display:flex;align-items:center;gap:6px}
+.store-availability-box ul{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.store-availability-box li{font-size:13px;padding:6px 0;border-bottom:1px dashed #e2e8f0;line-height:1.45}
+.store-availability-box li:last-child{border-bottom:0}
+.store-availability-box .muted{color:#64748b;font-size:12px}
