@@ -37,6 +37,9 @@ class AuthFlowTest {
   jdbc.execute("CREATE TABLE IF NOT EXISTS dbo.Roles(RoleId int PRIMARY KEY,RoleCode varchar(30))");
   jdbc.execute("CREATE TABLE IF NOT EXISTS dbo.UserRoles(UserId int,RoleId int,AssignedAt timestamp)");
   jdbc.execute("CREATE TABLE IF NOT EXISTS dbo.RefreshTokens(UserId int,RevokedAt timestamp)");
+  jdbc.execute("CREATE TABLE IF NOT EXISTS dbo.Stores(StoreId int IDENTITY(1,1) PRIMARY KEY, StoreCode varchar(30), StoreName nvarchar(255), Address nvarchar(500), Phone varchar(20), Email varchar(100), Status varchar(20) DEFAULT 'ACTIVE')");
+  jdbc.execute("CREATE TABLE IF NOT EXISTS dbo.StaffStoreAssignments(AssignmentId int IDENTITY(1,1) PRIMARY KEY, UserId int, StoreId int, StoreRole varchar(20), Status varchar(20) DEFAULT 'ACTIVE', AssignedAt timestamp)");
+  jdbc.update("DELETE FROM dbo.StaffStoreAssignments");jdbc.update("DELETE FROM dbo.Stores");
   jdbc.update("DELETE FROM dbo.UserRoles");jdbc.update("DELETE FROM dbo.RefreshTokens");jdbc.update("DELETE FROM dbo.Roles");users.deleteAll();
   jdbc.update("INSERT INTO dbo.Roles VALUES(1,'CUSTOMER')");
  }

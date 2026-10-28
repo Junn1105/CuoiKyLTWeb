@@ -185,4 +185,42 @@ class StoreServiceTest {
   assertEquals(1, ctx.storeId());
   assertEquals("HCM-TD", ctx.storeCode());
  }
+ @Test
+ void testAdminAssignmentAndModificationRestrictions() {
+  // 1. Admin (id=1) không được tự phân công chính mình
+  assertThrows(AuthProblem.class, () -> storeService.assignStaff(1, 1, "MANAGER", null, 1));
+
+  // 2. Không được phân công tài khoản có role ADMIN
+  assertThrows(AuthProblem.class, () -> storeService.assignStaff(1, 1, "STAFF", null, 999));
+
+  // 3. Không được đổi chức vụ của Admin
+  assertThrows(AuthProblem.class, () -> storeService.changeUserRole(1, "STAFF", 999));
+
+  // 4. Không được khóa tài khoản Admin
+  assertThrows(AuthProblem.class, () -> storeService.toggleUserStatus(1, 999));
+ }
+
+ @Test
+ void testSingleActiveAssignmentEnforcement() {
+  // Phân công user 2 vào store 1
+  storeService.assignStaff(2, 1, "STAFF", null, 1);
+  assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM dbo.StaffStoreAssignments WHERE UserId = 2 AND Status = 'ACTIVE'", Integer.class));
+
+  // Phân công lại user 2 sang store 2 -> phân công cũ tại store 1 tự động chuyển sang ENDED
+  storeService.assignStaff(2, 2, "MANAGER", null, 1);
+  assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM dbo.StaffStoreAssignments WHERE UserId = 2 AND Status = 'ACTIVE'", Integer.class));
+
+  var activeAssignment = jdbc.queryForMap("SELECT StoreId, StoreRole FROM dbo.StaffStoreAssignments WHERE UserId = 2 AND Status = 'ACTIVE'");
+  assertEquals(2, ((Number) activeAssignment.get("StoreId")).intValue());
+  assertEquals("MANAGER", activeAssignment.get("StoreRole"));
+ }
+
+ @Test
+ void testAdminCannotShipOrReceiveTransfer() {
+  int transferId = storeService.createStockTransfer(1, 2, List.of(1), 2, "Test shipment role");
+  storeService.approveStockTransfer(transferId, 1);
+
+  // Admin (id=1) không được bấm xuất kho hoặc nhận kho
+  assertThrows(AuthProblem.class, () -> storeService.shipStockTransfer(transferId, 1));
+ }
 }
