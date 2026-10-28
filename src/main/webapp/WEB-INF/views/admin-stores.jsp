@@ -333,24 +333,46 @@
 
            <!-- Thao tác theo trạng thái APPROVED -->
            <c:if test="${trf.status == 'APPROVED'}">
-            <form method="post" action="${base}/admin/stores/transfers/${trf.transferId}/ship" class="inline-form">
-             <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
-             <button type="submit" class="btn-sm btn-warning">🚚 Xuất kho (Ship)</button>
-            </form>
-            <c:if test="${userContext.isAdmin()}">
-             <form method="post" action="${base}/admin/stores/transfers/${trf.transferId}/cancel" class="inline-form" data-confirm-cancel>
-              <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
-              <button type="submit" class="btn-sm btn-danger">Hủy</button>
-             </form>
-            </c:if>
+            <c:choose>
+             <c:when test="${userContext.isAdmin()}">
+              <span class="status-badge approved" style="font-size:11px;">Admin đã duyệt (Chờ CN xuất kho)</span>
+             </c:when>
+             <c:otherwise>
+              <c:choose>
+               <c:when test="${userContext.storeId() != null and userContext.storeId() == trf.fromStoreId}">
+                <form method="post" action="${base}/admin/stores/transfers/${trf.transferId}/ship" class="inline-form">
+                 <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                 <button type="submit" class="btn-sm btn-warning">🚚 Xuất kho (Ship)</button>
+                </form>
+               </c:when>
+               <c:otherwise>
+                <span class="status-badge approved" style="font-size:11px;">Chờ CN xuất kho</span>
+               </c:otherwise>
+              </c:choose>
+             </c:otherwise>
+            </c:choose>
            </c:if>
 
            <!-- Thao tác theo trạng thái IN_TRANSIT -->
            <c:if test="${trf.status == 'IN_TRANSIT'}">
-            <form method="post" action="${base}/admin/stores/transfers/${trf.transferId}/receive" class="inline-form">
-             <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
-             <button type="submit" class="btn-sm btn-success">📦 Xác nhận nhận hàng</button>
-            </form>
+            <c:choose>
+             <c:when test="${userContext.isAdmin()}">
+              <span class="status-badge transit" style="font-size:11px;">Đang vận chuyển (Chờ CN nhận hàng)</span>
+             </c:when>
+             <c:otherwise>
+              <c:choose>
+               <c:when test="${userContext.storeId() != null and userContext.storeId() == trf.toStoreId}">
+                <form method="post" action="${base}/admin/stores/transfers/${trf.transferId}/receive" class="inline-form">
+                 <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                 <button type="submit" class="btn-sm btn-success">📦 Xác nhận nhận hàng</button>
+                </form>
+               </c:when>
+               <c:otherwise>
+                <span class="status-badge transit" style="font-size:11px;">Đang trên đường giao</span>
+               </c:otherwise>
+              </c:choose>
+             </c:otherwise>
+            </c:choose>
            </c:if>
           </div>
          </td>
@@ -362,45 +384,50 @@
    </table>
   </div>
 
-  <hr class="admin-divider" id="create-transfer-box">
-
-  <!-- HỘP TẠO PHIẾU ĐIỀU CHUYỂN MỚI LIỀN MẠCH -->
-  <div class="create-card">
-   <div class="panel-top" style="margin-bottom:14px;">
-    <div>
-     <span class="eyebrow" style="color:#1158c5;">TẠO PHIẾU ĐIỀU CHUYỂN NỘI BỘ MỚI</span>
-     <h3 style="margin:4px 0;">+ Lập Phiếu Chuyển Sách Sang Chi Nhánh Khác</h3>
-     <p class="hint">Chọn chi nhánh gửi, danh sách sách sẵn sàng chuyển sẽ hiển thị ngay lập tức để bạn tích chọn.</p>
+  <c:choose>
+   <c:when test="${userContext.isAdmin()}">
+    <div class="hint-box" style="margin-top:20px; padding:16px 20px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; color:#1e40af; font-size:13.5px;">
+     <p style="margin:0;">ℹ️ <b>Quyền hạn Quản trị viên (Admin):</b> Quản trị viên chỉ phụ trách thẩm định và <b>Phê duyệt</b> các yêu cầu điều chuyển kho sách trên toàn chuỗi. Các thao tác lập phiếu yêu cầu, thực hiện xuất kho (Ship) và tiếp nhận nhập kho (Receive) do Quản lý và Nhân viên tại từng chi nhánh cụ thể phụ trách thực hiện.</p>
     </div>
-   </div>
+   </c:when>
+   <c:otherwise>
+    <hr class="admin-divider" id="create-transfer-box">
 
-   <form method="post" action="${base}/admin/stores/transfers/create" class="admin-book-form" id="createTransferForm">
-    <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+    <!-- HỘP TẠO PHIẾU ĐIỀU CHUYỂN MỚI CHO QUẢN LÝ / NHÂN VIÊN CHI NHÁNH -->
+    <div class="create-card">
+     <div class="panel-top" style="margin-bottom:14px;">
+      <div>
+       <span class="eyebrow" style="color:#1158c5;">TẠO PHIẾU ĐIỀU CHUYỂN NỘI BỘ MỚI</span>
+       <h3 style="margin:4px 0;">+ Lập Phiếu Chuyển Sách Sang Chi Nhánh Khác</h3>
+       <p class="hint">Chi nhánh xuất kho mặc định là chi nhánh bạn phụ trách. Vui lòng chọn chi nhánh nhận và các bản sách cần chuyển.</p>
+      </div>
+     </div>
 
-    <div class="form-row-4">
-     <div class="field-group">
-      <label>1. Chi nhánh gửi (Xuất kho) <span>*</span> <button type="button" class="btn-sm btn-outline" style="margin-left:6px; padding:2px 8px; font-size:11px;" onclick="loadAvailableCopies(document.getElementById('fromStoreSelect').value)">🔄 Tải lại sách</button></label>
-      <select id="fromStoreSelect" name="fromStoreId" required onchange="loadAvailableCopies(this.value)">
-       <option value="">-- Chọn chi nhánh gửi sách --</option>
-       <c:forEach items="${activeStores}" var="as">
-        <option value="${as.id}" ${selectedFromStore == as.id ? 'selected' : ''}><c:out value="${as.name}"/> (${as.code})</option>
-       </c:forEach>
-      </select>
-     </div>
-     <div class="field-group">
-      <label>2. Chi nhánh nhận (Đích đến) <span>*</span></label>
-      <select id="toStoreSelect" name="toStoreId" required>
-       <option value="">-- Chọn chi nhánh nhận hàng --</option>
-       <c:forEach items="${activeStores}" var="as">
-        <option value="${as.id}"><c:out value="${as.name}"/> (${as.code})</option>
-       </c:forEach>
-      </select>
-     </div>
-     <div class="field-group" style="grid-column: span 2;">
-      <label>Ghi chú điều chuyển</label>
-      <input type="text" name="note" placeholder="Ví dụ: Bổ sung sách văn học thiếu hàng theo yêu cầu khách...">
-     </div>
-    </div>
+     <form method="post" action="${base}/admin/stores/transfers/create" class="admin-book-form" id="createTransferForm">
+      <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+
+      <div class="form-row-4">
+       <div class="field-group">
+        <label>1. Chi nhánh gửi (Xuất kho) <span>*</span> <button type="button" class="btn-sm btn-outline" style="margin-left:6px; padding:2px 8px; font-size:11px;" onclick="loadAvailableCopies(document.getElementById('fromStoreSelect').value)">🔄 Tải lại sách</button></label>
+        <input type="hidden" id="fromStoreSelect" name="fromStoreId" value="${userContext.storeId()}">
+        <input type="text" value="📍 ${userContext.storeName()} (${userContext.storeCode()})" readonly style="background:#f1f5f9; cursor:not-allowed; font-weight:600; color:#0369a1;">
+       </div>
+       <div class="field-group">
+        <label>2. Chi nhánh nhận (Đích đến) <span>*</span></label>
+        <select id="toStoreSelect" name="toStoreId" required>
+         <option value="">-- Chọn chi nhánh nhận hàng --</option>
+         <c:forEach items="${activeStores}" var="as">
+          <c:if test="${as.id != userContext.storeId()}">
+           <option value="${as.id}"><c:out value="${as.name}"/> (${as.code})</option>
+          </c:if>
+         </c:forEach>
+        </select>
+       </div>
+       <div class="field-group" style="grid-column: span 2;">
+        <label>Ghi chú điều chuyển</label>
+        <input type="text" name="note" placeholder="Ví dụ: Bổ sung sách văn học thiếu hàng theo yêu cầu khách...">
+       </div>
+      </div>
 
     <!-- KHU VỰC TỰ ĐỘNG HIỂN THỊ DANH SÁCH SÁCH SẴN CÓ -->
     <div id="copiesContainer" style="margin-top: 14px;">
@@ -455,6 +482,8 @@
     </div>
    </form>
   </div>
+   </c:otherwise>
+  </c:choose>
  </section>
 
  <!-- ==================== PHẦN 3: PHÂN CÔNG NHÂN SỰ CHI NHÁNH (ADMIN & MANAGER) ==================== -->
@@ -670,32 +699,38 @@
           </td>
           <td>
            <div class="inline-actions">
-            <!-- Đổi vai trò -->
-            <form action="${base}/admin/stores/users/${u.userId}/role" method="post" style="display:inline-flex; gap:3px;">
-             <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
-             <select name="role" style="font-size:11px; padding:2px 4px; border-radius:4px; border:1px solid #cbd5e1;">
-              <option value="CUSTOMER" ${u.roles == 'CUSTOMER' ? 'selected' : ''}>CUSTOMER</option>
-              <option value="STAFF" ${u.roles.contains('STAFF') ? 'selected' : ''}>STAFF</option>
-              <option value="MANAGER" ${u.roles.contains('MANAGER') or u.storeRole == 'MANAGER' ? 'selected' : ''}>MANAGER</option>
-              <option value="ADMIN" ${u.roles.contains('ADMIN') ? 'selected' : ''}>ADMIN</option>
-             </select>
-             <button type="submit" class="btn-sm btn-outline" style="padding:2px 6px; font-size:11px;">Lưu</button>
-            </form>
-
-            <!-- Khóa / Mở khóa -->
-            <form action="${base}/admin/stores/users/${u.userId}/toggle-status" method="post" style="display:inline;">
-             <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
              <c:choose>
-              <c:when test="${u.status == 'ACTIVE'}">
-               <button type="submit" class="btn-sm btn-danger" style="padding:3px 8px; font-size:11px;" onclick="return confirm('Bạn có chắc chắn muốn KHÓA tài khoản ${u.username}?')">🔒 Khóa</button>
+              <c:when test="${u.roles.contains('ADMIN')}">
+               <span style="font-size:11.5px; color:#92400e; font-weight:700; padding:4px 10px; background:#fef3c7; border:1px solid #fde68a; border-radius:6px; display:inline-block;">👑 Quản trị viên cấp cao (Cố định)</span>
               </c:when>
               <c:otherwise>
-               <button type="submit" class="btn-sm btn-success" style="padding:3px 8px; font-size:11px;">🔓 Mở</button>
+               <!-- Đổi vai trò -->
+               <form action="${base}/admin/stores/users/${u.userId}/role" method="post" style="display:inline-flex; gap:3px;">
+                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                <select name="role" style="font-size:11px; padding:2px 4px; border-radius:4px; border:1px solid #cbd5e1;">
+                 <option value="CUSTOMER" ${u.roles == 'CUSTOMER' ? 'selected' : ''}>CUSTOMER</option>
+                 <option value="STAFF" ${u.roles.contains('STAFF') ? 'selected' : ''}>STAFF</option>
+                 <option value="MANAGER" ${u.roles.contains('MANAGER') or u.storeRole == 'MANAGER' ? 'selected' : ''}>MANAGER</option>
+                </select>
+                <button type="submit" class="btn-sm btn-outline" style="padding:2px 6px; font-size:11px;">Lưu</button>
+               </form>
+
+               <!-- Khóa / Mở khóa -->
+               <form action="${base}/admin/stores/users/${u.userId}/toggle-status" method="post" style="display:inline;">
+                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                <c:choose>
+                 <c:when test="${u.status == 'ACTIVE'}">
+                  <button type="submit" class="btn-sm btn-danger" style="padding:3px 8px; font-size:11px;" onclick="return confirm('Bạn có chắc chắn muốn KHÓA tài khoản ${u.username}?')">🔒 Khóa</button>
+                 </c:when>
+                 <c:otherwise>
+                  <button type="submit" class="btn-sm btn-success" style="padding:3px 8px; font-size:11px;">🔓 Mở</button>
+                 </c:otherwise>
+                </c:choose>
+               </form>
               </c:otherwise>
              </c:choose>
-            </form>
 
-            <!-- Đặt lại mật khẩu -->
+             <!-- Đặt lại mật khẩu -->
             <details style="display:inline-block;">
              <summary class="btn-sm btn-outline" style="padding:3px 6px; font-size:11px; cursor:pointer;">🔑 Reset Pass</summary>
              <div style="position:absolute; right:30px; background:#fff; border:1px solid #cbd5e1; border-radius:8px; padding:12px; box-shadow:0 8px 24px rgba(0,0,0,0.15); z-index:100; min-width:240px; margin-top:4px;">

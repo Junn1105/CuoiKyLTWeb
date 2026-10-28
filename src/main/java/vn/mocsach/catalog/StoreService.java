@@ -323,15 +323,36 @@ public class StoreService {
   }, filterStoreId, filterStoreId);
  }
 
+ public boolean isUserAdmin(int userId) {
+  try {
+   Integer cnt = jdbc.queryForObject(
+    "SELECT COUNT(*) FROM dbo.UserRoles ur JOIN dbo.Roles r ON r.RoleId = ur.RoleId WHERE ur.UserId = ? AND r.RoleCode = 'ADMIN'",
+    Integer.class, userId
+   );
+   return cnt != null && cnt > 0;
+  } catch (Exception e) {
+   return false;
+  }
+ }
+
  public List<Map<String, Object>> getEligibleStaffUsers() {
+  return getEligibleStaffUsers(null);
+ }
+
+ public List<Map<String, Object>> getEligibleStaffUsers(Integer actorUserId) {
   String sql = """
    SELECT DISTINCT u.UserId, u.Username, u.FullName, u.Email
    FROM dbo.Users u
    JOIN dbo.UserRoles ur ON ur.UserId = u.UserId
    JOIN dbo.Roles r ON r.RoleId = ur.RoleId
-   WHERE r.RoleCode IN ('ADMIN', 'STAFF', 'MANAGER') AND u.Status = 'ACTIVE'
+   WHERE r.RoleCode IN ('STAFF', 'MANAGER', 'CUSTOMER')
+     AND u.Status = 'ACTIVE'
+     AND u.UserId NOT IN (
+       SELECT ur2.UserId FROM dbo.UserRoles ur2 JOIN dbo.Roles r2 ON r2.RoleId = ur2.RoleId WHERE r2.RoleCode = 'ADMIN'
+     )
+  """ + (actorUserId != null ? " AND u.UserId != " + actorUserId : "") + """
    ORDER BY u.FullName
-   """;
+  """;
   return jdbc.query(sql, (rs, i) -> {
    var m = new LinkedHashMap<String, Object>();
    m.put("userId", rs.getInt("UserId"));
@@ -343,11 +364,22 @@ public class StoreService {
  }
 
  @Transactional
- public void assignStaff(int userId, int storeId, String storeRole, Integer managerStoreId) {
+ public void assignStaff(int userId, int storeId, String storeRole, Integer managerStoreId, Integer actorUserId) {
   if (managerStoreId != null && managerStoreId.intValue() != storeId) {
    throw new AuthProblem("Quản lý chi nhánh chỉ được quyền phân công nhân sự tại chi nhánh của mình.");
   }
+  if (actorUserId != null && actorUserId.intValue() == userId) {
+   throw new AuthProblem("Quản trị viên (Admin) không được tự phân công chính mình vào chi nhánh.");
+  }
+  if (isUserAdmin(userId)) {
+   throw new AuthProblem("Không được phân công tài khoản Quản trị viên (Admin) làm nhân sự chi nhánh.");
+  }
   assignStaff(userId, storeId, storeRole);
+ }
+
+ @Transactional
+ public void assignStaff(int userId, int storeId, String storeRole, Integer managerStoreId) {
+  assignStaff(userId, storeId, storeRole, managerStoreId, null);
  }
 
  @Transactional
@@ -355,6 +387,10 @@ public class StoreService {
   String role = storeRole == null ? "STAFF" : storeRole.trim().toUpperCase(Locale.ROOT);
   if (!Set.of("MANAGER", "STAFF").contains(role)) {
    throw new AuthProblem("Vai trò chi nhánh chỉ có thể là MANAGER hoặc STAFF.");
+  }
+
+  if (isUserAdmin(userId)) {
+   throw new AuthProblem("Không được phân công tài khoản Quản trị viên (Admin) làm nhân sự chi nhánh.");
   }
 
   Integer userOk = jdbc.queryForObject("SELECT COUNT(*) FROM dbo.Users WHERE UserId = ? AND Status = 'ACTIVE'", Integer.class, userId);
@@ -367,13 +403,19 @@ public class StoreService {
    throw new AuthProblem("Chi nhánh không tồn tại hoặc không ở trạng thái hoạt động.");
   }
 
-  Integer active = jdbc.queryForObject(
-   "SELECT COUNT(*) FROM dbo.StaffStoreAssignments WHERE UserId = ? AND StoreId = ? AND Status = 'ACTIVE'",
-   Integer.class, userId, storeId
-  );
-  if (active != null && active > 0) {
-   throw new AuthProblem("Nhân viên này đã được phân công tại chi nhánh được chọn.");
-  }
+  // Tự động kết thúc các phân công cũ (nếu có) để mỗi người chỉ giữ 1 chức vụ tại 1 chi nhánh
+  jdbc.update("UPDATE dbo.StaffStoreAssignments SET Status = 'ENDED', EndAt = CURRENT_TIMESTAMP WHERE UserId = ? AND Status = 'ACTIVE'", userId);
+
+  // Đảm bảo user có role STAFF trong UserRoles nếu đang là CUSTOMER
+  try {
+   Integer staffRoleId = jdbc.queryForObject("SELECT RoleId FROM dbo.Roles WHERE RoleCode = 'STAFF'", Integer.class);
+   if (staffRoleId != null) {
+    Integer hasStaff = jdbc.queryForObject("SELECT COUNT(*) FROM dbo.UserRoles WHERE UserId = ? AND RoleId = ?", Integer.class, userId, staffRoleId);
+    if (hasStaff == null || hasStaff == 0) {
+     jdbc.update("INSERT INTO dbo.UserRoles(UserId, RoleId, AssignedAt) VALUES(?,?,CURRENT_TIMESTAMP)", userId, staffRoleId);
+    }
+   }
+  } catch (Exception ignored) {}
 
   jdbc.update(
    "INSERT INTO dbo.StaffStoreAssignments(UserId, StoreId, StoreRole, StartAt, Status) VALUES(?,?,?,CURRENT_TIMESTAMP,'ACTIVE')",
@@ -531,6 +573,12 @@ public class StoreService {
   if (fromStoreId == toStoreId) {
    throw new AuthProblem("Chi nhánh gửi và chi nhánh nhận phải khác nhau.");
   }
+  var actorCtx = getUserStoreContext(requestedByUserId);
+  if (!actorCtx.isAdmin()) {
+   if (actorCtx.storeId() != null && actorCtx.storeId().intValue() != fromStoreId) {
+    throw new AuthProblem("Bạn chỉ có quyền tạo phiếu xuất kho từ chi nhánh bạn đang phụ trách (" + actorCtx.storeName() + ").");
+   }
+  }
   if (copyIds == null || copyIds.isEmpty()) {
    throw new AuthProblem("Vui lòng chọn ít nhất 1 cuốn sách để tạo phiếu điều chuyển.");
   }
@@ -640,10 +688,15 @@ public class StoreService {
   }
 
   int fromStoreId = ((Number) row.get("FromStoreId")).intValue();
+  String fromStoreName = (String) row.get("fromStoreName");
+  if (fromStoreName == null) fromStoreName = "chi nhánh gửi";
   if (actorUserId != null) {
    var ctx = getUserStoreContext(actorUserId);
-   if (!ctx.isAdmin() && (ctx.storeId() == null || ctx.storeId() != fromStoreId)) {
-    throw new AuthProblem("Chỉ nhân sự tại chi nhánh gửi (hoặc Quản trị viên) mới có quyền thực hiện xuất kho phiếu này.");
+   if (ctx.isAdmin()) {
+    throw new AuthProblem("Quản trị viên (Admin) chỉ phụ trách phê duyệt phiếu điều chuyển. Thao tác xuất kho phải do Quản lý hoặc Nhân viên chi nhánh gửi (" + fromStoreName + ") thực hiện.");
+   }
+   if (ctx.storeId() == null || ctx.storeId().intValue() != fromStoreId) {
+    throw new AuthProblem("Chỉ Quản lý hoặc Nhân viên tại chi nhánh gửi (" + fromStoreName + ") mới có quyền thực hiện xuất kho cho phiếu này.");
    }
   }
 
@@ -674,10 +727,15 @@ public class StoreService {
   }
 
   int toStoreId = ((Number) row.get("ToStoreId")).intValue();
+  String toStoreName = (String) row.get("toStoreName");
+  if (toStoreName == null) toStoreName = "chi nhánh nhận";
   if (actorUserId != null) {
    var ctx = getUserStoreContext(actorUserId);
-   if (!ctx.isAdmin() && (ctx.storeId() == null || ctx.storeId() != toStoreId)) {
-    throw new AuthProblem("Chỉ nhân sự tại chi nhánh nhận (hoặc Quản trị viên) mới có quyền xác nhận nhập kho phiếu này.");
+   if (ctx.isAdmin()) {
+    throw new AuthProblem("Quản trị viên (Admin) chỉ phụ trách phê duyệt phiếu điều chuyển. Thao tác nhận kho phải do Quản lý hoặc Nhân viên chi nhánh nhận (" + toStoreName + ") thực hiện.");
+   }
+   if (ctx.storeId() == null || ctx.storeId().intValue() != toStoreId) {
+    throw new AuthProblem("Chỉ Quản lý hoặc Nhân viên tại chi nhánh nhận (" + toStoreName + ") mới có quyền xác nhận nhập kho cho phiếu này.");
    }
   }
 
@@ -1044,6 +1102,9 @@ public class StoreService {
   if (targetUserId == adminUserId) {
    throw new AuthProblem("Bạn không thể tự khóa tài khoản của chính mình.");
   }
+  if (isUserAdmin(targetUserId)) {
+   throw new AuthProblem("Không thể khóa tài khoản Quản trị viên (Admin).");
+  }
   var status = jdbc.queryForObject("SELECT Status FROM dbo.Users WHERE UserId = ?", String.class, targetUserId);
   String newStatus = "ACTIVE".equalsIgnoreCase(status) ? "LOCKED" : "ACTIVE";
   jdbc.update(
@@ -1055,7 +1116,10 @@ public class StoreService {
  @Transactional
  public void changeUserRole(int targetUserId, String newRole, int adminUserId) {
   if (targetUserId == adminUserId) {
-   throw new AuthProblem("Bạn không thể tự thay đổi vai trò của chính mình.");
+   throw new AuthProblem("Bạn không thể tự sửa chức vụ của chính mình.");
+  }
+  if (isUserAdmin(targetUserId)) {
+   throw new AuthProblem("Không được phép thay đổi chức vụ của tài khoản Quản trị viên (Admin).");
   }
   String r = newRole == null ? "STAFF" : newRole.trim().toUpperCase(Locale.ROOT);
   Integer roleId = jdbc.queryForObject("SELECT RoleId FROM dbo.Roles WHERE RoleCode = ?", Integer.class, "MANAGER".equals(r) ? "STAFF" : r);
@@ -1077,6 +1141,12 @@ public class StoreService {
 
  @Transactional
  public void adminResetPassword(int targetUserId, String newPassword, int adminUserId) {
+  if (targetUserId != adminUserId && isUserAdmin(targetUserId)) {
+
+   throw new AuthProblem("Không thể đặt lại mật khẩu của Quản trị viên khác.");
+
+  }
+
   if (newPassword == null || newPassword.strip().length() < 6) {
    throw new AuthProblem("Mật khẩu mới phải có ít nhất 6 ký tự.");
   }

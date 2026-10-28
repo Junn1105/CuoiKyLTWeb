@@ -140,10 +140,10 @@ public class StoreAdminController {
   // Staff assignments tab based on role
   if (ctx.isAdmin()) {
    model.addAttribute("staffAssignments", storeService.listStaffAssignments(null));
-   model.addAttribute("eligibleUsers", storeService.getEligibleStaffUsers());
+   model.addAttribute("eligibleUsers", storeService.getEligibleStaffUsers(u.id));
   } else if (ctx.isManager() && ctx.storeId() != null) {
    model.addAttribute("staffAssignments", storeService.listStaffAssignments(ctx.storeId()));
-   model.addAttribute("eligibleUsers", storeService.getEligibleStaffUsers());
+   model.addAttribute("eligibleUsers", storeService.getEligibleStaffUsers(u.id));
   } else {
    model.addAttribute("staffAssignments", List.of());
    model.addAttribute("eligibleUsers", List.of());
@@ -248,7 +248,7 @@ public class StoreAdminController {
   var ctx = storeService.getUserStoreContext(u.id);
   try {
    Integer managerStoreId = ctx.isAdmin() ? null : ctx.storeId();
-   storeService.assignStaff(userId, storeId, storeRole, managerStoreId);
+   storeService.assignStaff(userId, storeId, storeRole, managerStoreId, u.id);
    flash.addFlashAttribute("success", "Đã phân công nhân sự vào chi nhánh thành công.");
   } catch (AuthProblem ex) {
    flash.addFlashAttribute("error", ex.getMessage());
@@ -285,8 +285,10 @@ public class StoreAdminController {
   RedirectAttributes flash
  ) {
   var u = user(principal);
+  var ctx = storeService.getUserStoreContext(u.id);
+  int effectiveFromStoreId = ctx.isAdmin() ? fromStoreId : (ctx.storeId() != null ? ctx.storeId() : fromStoreId);
   try {
-   int transferId = storeService.createStockTransfer(fromStoreId, toStoreId, copyIds, u.id, note);
+   int transferId = storeService.createStockTransfer(effectiveFromStoreId, toStoreId, copyIds, u.id, note);
    flash.addFlashAttribute("success", "Đã lập phiếu điều chuyển sách nội bộ thành công (ID=" + transferId + "). Trạng thái hiện tại: DRAFT (Chờ duyệt).");
    if ("my-store".equalsIgnoreCase(source)) {
     return "redirect:/admin/my-store#transfers-section";
