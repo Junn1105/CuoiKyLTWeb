@@ -13,10 +13,33 @@
   <span class="eyebrow">CHI TIẾT ĐƠN HÀNG · SHOPEE EXPRESS</span>
   <h1>Mã đơn: <c:out value="${order.orderCode}"/> <span class="status-badge ${order.status == 'CANCELLED' ? 'warn' : 'ok'}"><c:out value="${order.statusLabel}"/></span></h1>
   <p class="hint">Ngày đặt: <c:out value="${order.createdAt}"/> · Phương thức thanh toán: <strong><c:out value="${order.payment.methodLabel}"/></strong> (<c:out value="${order.payment.statusLabel}"/>)</p>
+  <c:if test="${order.hasWaitingTimer and not order.payment.isPaid and order.status == 'PENDING'}">
+   <div class="order-countdown-box inline-countdown" id="qr-countdown-box" data-remaining="${order.remainingSeconds}">
+    <div class="countdown-badge">
+     <span class="countdown-icon">⏳</span>
+     <div class="countdown-info">
+      <div class="countdown-title">Thời gian chờ hoàn tất thanh toán: <strong id="countdown-timer" class="countdown-timer"><c:out value="${order.remainingTimeLabel}"/></strong></div>
+      <p class="countdown-desc">Đơn hàng chuyển khoản sẽ tự động hủy nếu không hoàn tất thanh toán trong thời gian trên.</p>
+     </div>
+    </div>
+   </div>
+  </c:if>
+  <c:if test="${order.status == 'CANCELLED'}">
+   <div class="expired-banner" style="margin-top:10px;" role="alert">
+    <strong>✕ Đơn hàng đã bị hủy</strong>
+    <p>Đơn hàng <c:out value="${order.orderCode}"/> đã bị hủy<c:if test="${order.isExpired}"> do quá thời gian chờ hoàn tất thanh toán (15 phút)</c:if>. Sách đã được hoàn lại kệ hàng.</p>
+   </div>
+  </c:if>
  </div>
  <div class="post-payment-actions">
   <a class="action-btn primary" href="#order-items-section">📄 Xem thông tin đơn hàng</a>
   <a class="action-btn secondary" href="${base}/orders/${order.orderId}/invoice" target="_blank" rel="noopener">🖨 In hóa đơn</a>
+  <c:if test="${order.canConfirmReceived}">
+   <form method="post" action="${base}/orders/${order.orderId}/received" class="inline-form" data-confirm-received>
+    <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+    <button type="submit" class="action-btn success">📦 Đã nhận hàng</button>
+   </form>
+  </c:if>
   <c:if test="${order.payment.isBankTransfer and not order.payment.isPaid and order.canCancel}">
    <a class="action-btn outline" href="${base}/checkout/qr/${order.orderId}">🏦 Quét mã QR thanh toán</a>
   </c:if>
@@ -28,6 +51,31 @@
   </c:if>
  </div>
 </section>
+
+<c:if test="${order.isMultiStore}">
+ <section class="panel" style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:16px 20px; margin-bottom:20px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+   <div>
+    <strong style="color:#0369a1; font-size:15px;">📦 Đơn hàng tổng hợp liên chi nhánh (Mã gốc: <c:out value="${order.baseOrderCode}"/>)</strong>
+    <p style="margin:4px 0 0; font-size:13px; color:#0c4a6e;">
+     Do các cuốn sách nằm tại các chi nhánh khác nhau, đơn được chia thành <strong><c:out value="${order.siblingOrders.size()}"/> kiện hàng</strong>. Mỗi chi nhánh đang trực tiếp kiểm tra và chuẩn bị sách trên kệ:
+    </p>
+   </div>
+   <div style="font-size:13px; font-weight:600; color:#0369a1;">
+    Tổng thanh toán tất cả các kiện: <span style="font-size:15px; color:#d92d20;"><c:out value="${order.groupTotalAmountLabel}"/></span>
+   </div>
+  </div>
+  <div style="display:flex; flex-wrap:wrap; gap:8px;">
+   <c:forEach items="${order.siblingOrders}" var="sib">
+    <a href="${base}/orders/${sib.orderId}" style="display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:8px; text-decoration:none; font-size:13px; border:1.5px solid ${sib.orderId == order.orderId ? '#0284c7' : '#cbd5e1'}; background:${sib.orderId == order.orderId ? '#e0f2fe' : '#fff'}; color:#0f172a;">
+     <span>📍 <strong><c:out value="${sib.storeName}"/></strong>: <c:out value="${sib.orderCode}"/> (<c:out value="${sib.totalAmountLabel}"/>)</span>
+     <span class="status-badge ${sib.status == 'CANCELLED' ? 'warn' : 'ok'}" style="font-size:11px; padding:2px 6px;"><c:out value="${sib.statusLabel}"/></span>
+     <c:if test="${sib.orderId == order.orderId}"><span style="font-size:11px; color:#0284c7; font-weight:600;">(Đang xem)</span></c:if>
+    </a>
+   </c:forEach>
+  </div>
+ </section>
+</c:if>
 
 <div class="cart-grid" id="order-items-section">
  <section class="panel cart-items-panel">
@@ -60,6 +108,7 @@
   <dl class="summary-rows">
    <div><dt>Người nhận</dt><dd><c:out value="${order.recipientName}"/></dd></div>
    <div><dt>Số điện thoại</dt><dd><c:out value="${order.recipientPhone}"/></dd></div>
+   <div><dt>Chi nhánh xuất kho</dt><dd><strong><c:out value="${order.storeName}"/></strong></dd></div>
    <div><dt>Đơn vị vận chuyển</dt><dd>Shopee Express (SPX)</dd></div>
    <div><dt>Dự kiến giao hàng tới</dt><dd><strong><c:out value="${order.estimatedDelivery}"/></strong></dd></div>
   </dl>

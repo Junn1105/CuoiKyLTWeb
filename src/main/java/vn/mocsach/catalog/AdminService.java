@@ -521,7 +521,27 @@ public class AdminService {
    VALUES(?, ?, ?, ?, CURRENT_TIMESTAMP, ?)
    """, orderId, oldStatus, newStatus, staffUserId, "Cập nhật trạng thái bởi nhân viên/quản trị viên");
 
-  if ("COMPLETED".equals(newStatus)) {
+  if ("CONFIRMED".equals(newStatus) || "PROCESSING".equals(newStatus) || "SHIPPED".equals(newStatus)) {
+   jdbc.update("""
+    UPDATE dbo.Payments
+    SET Status='SUCCEEDED',
+        PaidAt=CASE WHEN CreatedAt>CURRENT_TIMESTAMP THEN CreatedAt ELSE CURRENT_TIMESTAMP END
+    WHERE OrderId=? AND Status<>'SUCCEEDED' AND Method='BANK_TRANSFER'
+    """, orderId);
+   String code = String.valueOf(order.get("orderCode"));
+   if (code.matches(".*-\\d+$") && order.get("customerId") instanceof Number cNum) {
+    String basePrefix = code.replaceAll("-\\d+$", "") + "-%";
+    try {
+     jdbc.update("""
+      UPDATE dbo.Payments
+      SET Status='SUCCEEDED',
+          PaidAt=CASE WHEN CreatedAt>CURRENT_TIMESTAMP THEN CreatedAt ELSE CURRENT_TIMESTAMP END
+      WHERE Status<>'SUCCEEDED' AND Method='BANK_TRANSFER'
+        AND OrderId IN (SELECT o2.OrderId FROM dbo.Orders o2 WHERE o2.CustomerId=? AND o2.OrderCode LIKE ?)
+      """, cNum.intValue(), basePrefix);
+    } catch (DataAccessException ignored) {}
+   }
+  } else if ("COMPLETED".equals(newStatus)) {
    jdbc.update("""
     UPDATE dbo.BookCopies
     SET Status='SOLD', Version=Version+1, UpdatedAt=CURRENT_TIMESTAMP
@@ -533,6 +553,9 @@ public class AdminService {
         PaidAt=CASE WHEN CreatedAt>CURRENT_TIMESTAMP THEN CreatedAt ELSE CURRENT_TIMESTAMP END
     WHERE OrderId=? AND Status<>'SUCCEEDED'
     """, orderId);
+   try {
+    jdbc.update("UPDATE dbo.StockReservations SET Status='CONSUMED', ReleasedAt=CURRENT_TIMESTAMP WHERE OrderId=? AND Status='ACTIVE'", orderId);
+   } catch (DataAccessException ignored) {}
   } else if ("CANCELLED".equals(newStatus)) {
    jdbc.update("""
     UPDATE dbo.BookCopies
@@ -540,6 +563,9 @@ public class AdminService {
     WHERE CopyId IN (SELECT CopyId FROM dbo.OrderItems WHERE OrderId=?) AND Status IN ('RESERVED','SOLD')
     """, orderId);
    jdbc.update("UPDATE dbo.Payments SET Status='CANCELLED', PaidAt=NULL WHERE OrderId=?", orderId);
+   try {
+    jdbc.update("UPDATE dbo.StockReservations SET Status='CANCELLED', ReleasedAt=CURRENT_TIMESTAMP WHERE OrderId=? AND Status='ACTIVE'", orderId);
+   } catch (DataAccessException ignored) {}
   }
 
   if (order.get("customerId") instanceof Number custId) {

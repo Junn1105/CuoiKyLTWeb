@@ -13,9 +13,20 @@
 <a class="nav-item" href="${base}/cart"><span class="nav-icon">▱</span>Giỏ hàng<c:if test="${cartCount > 0}"> (<c:out value="${cartCount}"/>)</c:if></a>
 <a class="nav-item" href="${base}/orders"><span class="nav-icon">▤</span>Đơn hàng của tôi</a>
 <c:if test="${isStaffOrAdmin}">
- <a class="nav-item" href="${base}/admin"><span class="nav-icon">📊</span>Quản trị cửa hàng</a>
- <a class="nav-item" href="${base}/admin/my-store"><span class="nav-icon">🏪</span>Chi nhánh của tôi</a>
- <a class="nav-item" href="${base}/admin/stores"><span class="nav-icon">🏬</span>Chuỗi & Điều chuyển</a>
+ <c:choose>
+  <c:when test="${userContext != null and userContext.isAdmin()}">
+   <a class="nav-item" href="${base}/admin"><span class="nav-icon">&#128202;</span>Tổng quan hệ thống</a>
+   <a class="nav-item" href="${base}/admin/stores"><span class="nav-icon">&#127970;</span>Quản lý chuỗi & tài khoản</a>
+   <a class="nav-item" href="${base}/admin/my-store"><span class="nav-icon">&#127978;</span>Chi nhánh demo</a>
+  </c:when>
+  <c:when test="${userContext != null and userContext.isManager()}">
+   <a class="nav-item" href="${base}/admin/my-store"><span class="nav-icon">&#127978;</span>Không gian chi nhánh</a>
+   <a class="nav-item" href="${base}/admin/stores?tab=transfers"><span class="nav-icon">&#128257;</span>Đề xuất điều chuyển</a>
+  </c:when>
+  <c:otherwise>
+   <a class="nav-item" href="${base}/admin/my-store"><span class="nav-icon">&#127978;</span>Không gian chi nhánh</a>
+  </c:otherwise>
+ </c:choose>
 </c:if>
 </nav><div class="nav-divider"></div><nav aria-label="Tài khoản">
 <a class="nav-item" href="${base}/account"><span class="nav-icon">⚙</span>Tài khoản</a>
