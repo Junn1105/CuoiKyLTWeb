@@ -18,14 +18,15 @@
      <div class="order-card-head">
       <div>
        <strong>Mã đơn: <a href="${base}/orders/${o.orderId}"><c:out value="${o.orderCode}"/></a></strong>
-       <span class="order-date">Đặt lúc <c:out value="${o.createdAt}"/> · <c:out value="${o.itemCount}"/> cuốn</span>
+       <span class="order-date">Đặt lúc <c:out value="${o.createdAt}"/> · <c:out value="${o.itemCount}"/> cuốn<c:if test="${not empty o.storeName}"> · 📍 <c:out value="${o.storeName}"/></c:if></span>
       </div>
       <span class="status-badge ${o.status == 'CANCELLED' ? 'warn' : 'ok'}"><c:out value="${o.statusLabel}"/></span>
      </div>
      <div class="order-card-body">
       <div>
        <p><strong>Người nhận:</strong> <c:out value="${o.recipientName}"/> (<c:out value="${o.recipientPhone}"/>)</p>
-       <p><strong>Thanh toán:</strong> <c:out value="${o.paymentMethodLabel}"/> · <em><c:out value="${o.paymentStatusLabel}"/></em></p>
+       <p><strong>Thanh toán:</strong> <c:out value="${o.paymentMethodLabel}"/> · <em><c:out value="${o.paymentStatusLabel}"/></em><c:if test="${o.hasWaitingTimer and o.status == 'PENDING'}"> · <span class="status-badge warn">⏳ Chờ thanh toán (<c:out value="${o.remainingTimeLabel}"/>)</span></c:if></p>
+       <p><strong>Xuất kho từ:</strong> <c:out value="${not empty o.storeName ? o.storeName : 'Mộc Sách'}"/></p>
        <p><strong>Dự kiến giao hàng tới:</strong> <c:out value="${o.estimatedDelivery}"/> (Shopee Express)</p>
       </div>
       <div class="order-card-total">
@@ -36,6 +37,16 @@
      <div class="post-payment-actions">
       <a class="action-btn primary" href="${base}/orders/${o.orderId}">📄 Xem thông tin đơn hàng</a>
       <a class="action-btn secondary" href="${base}/orders/${o.orderId}/invoice" target="_blank" rel="noopener">🖨 In hóa đơn</a>
+      <c:if test="${o.canConfirmReceived}">
+       <form method="post" action="${base}/orders/${o.orderId}/received" class="inline-form" data-confirm-received>
+        <input type="hidden" name="redirect" value="orders">
+        <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+        <button type="submit" class="action-btn success">📦 Đã nhận hàng</button>
+       </form>
+      </c:if>
+      <c:if test="${o.hasWaitingTimer and not o.isPaid and o.canCancel}">
+       <a class="action-btn outline" href="${base}/checkout/qr/${o.orderId}">🏦 Quét mã QR thanh toán</a>
+      </c:if>
       <c:if test="${o.canCancel}">
        <form method="post" action="${base}/orders/${o.orderId}/cancel" class="inline-form" data-confirm-cancel>
         <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">

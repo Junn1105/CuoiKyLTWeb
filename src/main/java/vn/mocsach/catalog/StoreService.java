@@ -905,8 +905,41 @@ public class StoreService {
    .toList();
  }
 
+ public boolean orderContainsItemsFromStore(int orderId, int storeId) {
+  try {
+   Integer cnt = jdbc.queryForObject("""
+    SELECT COUNT(*) FROM dbo.Orders o
+    WHERE o.OrderId = ? AND (
+     o.StoreId = ? OR EXISTS (
+      SELECT 1 FROM dbo.OrderItems oi
+      JOIN dbo.BookCopies bc ON bc.CopyId = oi.CopyId
+      WHERE oi.OrderId = o.OrderId AND bc.StoreId = ?
+     )
+    )
+    """, Integer.class, orderId, storeId, storeId);
+   return cnt != null && cnt > 0;
+  } catch (DataAccessException ex) {
+   try {
+    Integer sId = jdbc.queryForObject("SELECT StoreId FROM dbo.Orders WHERE OrderId = ?", Integer.class, orderId);
+    return sId != null && sId == storeId;
+   } catch (DataAccessException e) {
+    return false;
+   }
+  }
+ }
+
  public List<Map<String, Object>> listOrdersForStore(int storeId, String statusFilter) {
   String st = statusFilter == null || statusFilter.isBlank() ? "ALL" : statusFilter.toUpperCase(Locale.ROOT);
+  boolean hasOrderItemsTable = false;
+  try {
+   jdbc.queryForObject("SELECT COUNT(*) FROM dbo.OrderItems", Integer.class);
+   hasOrderItemsTable = true;
+  } catch (DataAccessException ignored) {}
+
+  String whereClause = hasOrderItemsTable
+   ? "WHERE (o.StoreId = ? OR EXISTS (SELECT 1 FROM dbo.OrderItems oi JOIN dbo.BookCopies bc ON bc.CopyId = oi.CopyId WHERE oi.OrderId = o.OrderId AND bc.StoreId = ?)) AND (? = 'ALL' OR o.Status = ?)"
+   : "WHERE o.StoreId = ? AND (? = 'ALL' OR o.Status = ?)";
+
   String sql = """
    SELECT o.OrderId, o.OrderCode, o.StoreId, s.StoreName, o.CustomerId, u.FullName AS customerName,
           o.RecipientName, o.RecipientPhone, o.ShippingAddressSnapshot AS shippingAddress,
@@ -915,12 +948,9 @@ public class StoreService {
    FROM dbo.Orders o
    LEFT JOIN dbo.Stores s ON s.StoreId = o.StoreId
    LEFT JOIN dbo.Users u ON u.UserId = o.CustomerId
-   WHERE o.StoreId = ?
-     AND (? = 'ALL' OR o.Status = ?)
-   ORDER BY o.OrderId DESC
-   """;
+   """ + whereClause + "\n   ORDER BY o.OrderId DESC\n   ";
 
-  return jdbc.query(sql, (rs, i) -> {
+  var rowMapper = (org.springframework.jdbc.core.RowMapper<Map<String, Object>>) (rs, i) -> {
    var m = new LinkedHashMap<String, Object>();
    int orderId = rs.getInt("OrderId");
    String custName = rs.getString("customerName") == null ? "Khách vãng lai" : rs.getString("customerName");
@@ -951,7 +981,8 @@ public class StoreService {
    m.put("createdAt", createdAt);
    m.put("orderDate", createdAt);
    return (Map<String, Object>) m;
-  }, storeId, st, st);
+  };
+  return hasOrderItemsTable ? jdbc.query(sql, rowMapper, storeId, storeId, st, st) : jdbc.query(sql, rowMapper, storeId, st, st);
  }
 
  public List<Map<String, Object>> getBooksAvailableAtStore(int storeId) {

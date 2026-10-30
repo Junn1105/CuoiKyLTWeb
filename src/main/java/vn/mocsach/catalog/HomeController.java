@@ -75,6 +75,7 @@ public class HomeController {
     model.addAttribute("notifications", notifications.list(u.id, 12));
     model.addAttribute("unreadCount", notifications.unreadCount(u.id));
     model.addAttribute("isStaffOrAdmin", admin.isStaffOrAdmin(u.id));
+    model.addAttribute("userContext", storeService.getUserStoreContext(u.id));
    });
   }
   return "home";

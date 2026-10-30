@@ -1,6 +1,8 @@
 package vn.mocsach.catalog;
 
 import jakarta.servlet.http.HttpSession;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +13,7 @@ import java.security.Principal;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @Controller
 public class CheckoutController {
@@ -140,7 +143,7 @@ public class CheckoutController {
    String code = String.valueOf(detail.get("orderCode"));
    if ("BANK_TRANSFER".equalsIgnoreCase(paymentMethod)) {
     notifications.create(u.id, "ORDER", "Đơn hàng " + code + " đang chờ chuyển khoản",
-     "Vui lòng quét mã VietQR Vietcombank và bấm xác nhận thanh toán cho đơn hàng " + code + ".",
+     "Vui lòng quét mã VietQR Vietcombank để thanh toán cho đơn hàng " + code + " trong thời gian chờ (" + CheckoutService.ORDER_WAITING_MINUTES + " phút).",
      "/checkout/qr/" + orderId);
     return "redirect:/checkout/qr/" + orderId;
    }
@@ -159,27 +162,26 @@ public class CheckoutController {
  public String qrPage(@PathVariable int id, Principal principal, Model model) {
   var u = user(principal);
   var order = checkout.orderDetail(u.id, id);
+  String st = Objects.toString(order.get("status"), "PENDING");
+  @SuppressWarnings("unchecked")
+  var pay = (Map<String, Object>) order.get("payment");
+  boolean isPaid = pay != null && Boolean.TRUE.equals(pay.get("isPaid"));
+  if (isPaid || "CONFIRMED".equals(st) || "PROCESSING".equals(st) || "SHIPPED".equals(st) || "COMPLETED".equals(st)) {
+   return "redirect:/orders/" + id + "?paid=true";
+  }
   populateHeader(u, model);
   model.addAttribute("order", order);
   return "checkout-qr";
  }
 
- @PostMapping("/checkout/qr/{id}/confirm")
- public String confirmQr(@PathVariable int id, Principal principal, RedirectAttributes flash) {
+ @GetMapping(value = {"/checkout/qr/{id}/status", "/orders/{id}/status"}, produces = MediaType.APPLICATION_JSON_VALUE)
+ @ResponseBody
+ public ResponseEntity<Map<String, Object>> qrStatus(@PathVariable int id, Principal principal) {
   var u = user(principal);
-  try {
-   var order = checkout.confirmQrPayment(u.id, id);
-   String code = String.valueOf(order.get("orderCode"));
-   notifications.create(u.id, "ORDER", "Thanh toán thành công (" + code + ")",
-    "Cảm ơn bạn! Mộc Sách đã ghi nhận thanh toán chuyển khoản cho đơn hàng " + code + ".",
-    "/orders/" + id);
-   flash.addFlashAttribute("success", "Xác nhận thanh toán chuyển khoản thành công! Bạn có thể xem chi tiết, in hóa đơn hoặc quản lý đơn hàng bên dưới.");
-   return "redirect:/checkout/qr/" + id + "?confirmed=1";
-  } catch (AuthProblem ex) {
-   flash.addFlashAttribute("error", ex.getMessage());
-   return "redirect:/checkout/qr/" + id;
-  }
+  var status = checkout.checkQrStatus(u.id, id);
+  return ResponseEntity.ok(status);
  }
+
 
  @GetMapping("/orders")
  public String ordersPage(Principal principal, Model model) {
@@ -190,10 +192,18 @@ public class CheckoutController {
  }
 
  @GetMapping("/orders/{id}")
- public String orderDetailPage(@PathVariable int id, Principal principal, Model model) {
+ public String orderDetailPage(
+  @PathVariable int id,
+  @RequestParam(required = false) String paid,
+  Principal principal,
+  Model model
+ ) {
   var u = user(principal);
   var order = checkout.orderDetail(u.id, id);
   populateHeader(u, model);
+  if ("true".equalsIgnoreCase(paid) || "1".equals(paid)) {
+   model.addAttribute("success", "Thanh toán thành công! Đơn hàng " + order.get("orderCode") + " đã được xác nhận và đang được chuẩn bị.");
+  }
   model.addAttribute("order", order);
   return "order-detail";
  }
@@ -206,6 +216,27 @@ public class CheckoutController {
   model.addAttribute("isStaffOrAdmin", checkout.isStaffOrAdmin(u.id));
   model.addAttribute("order", order);
   return "order-invoice";
+ }
+
+ @PostMapping("/orders/{id}/received")
+ public String confirmReceived(
+  @PathVariable int id,
+  @RequestParam(defaultValue = "") String redirect,
+  Principal principal,
+  RedirectAttributes flash
+ ) {
+  var u = user(principal);
+  try {
+   var order = checkout.confirmOrderReceived(u.id, id);
+   String code = String.valueOf(order.get("orderCode"));
+   flash.addFlashAttribute("success", "Xác nhận đã nhận hàng cho đơn " + code + " thành công! Trạng thái đơn hàng đã chuyển sang Đã giao thành công.");
+  } catch (AuthProblem ex) {
+   flash.addFlashAttribute("error", ex.getMessage());
+  }
+  if ("orders".equalsIgnoreCase(redirect)) {
+   return "redirect:/orders";
+  }
+  return "redirect:/orders/" + id;
  }
 
  @PostMapping("/orders/{id}/cancel")

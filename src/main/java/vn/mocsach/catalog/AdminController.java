@@ -333,7 +333,9 @@ public class AdminController {
   var ctx = storeService.getUserStoreContext(u.id);
   if (!ctx.isAdmin()) {
    Integer orderStoreId = admin.getOrderStoreId(id);
-   if (orderStoreId != null && (ctx.storeId() == null || ctx.storeId().intValue() != orderStoreId.intValue())) {
+   boolean hasBranchAccess = (ctx.storeId() != null && orderStoreId != null && ctx.storeId().intValue() == orderStoreId.intValue())
+     || (ctx.storeId() != null && storeService.orderContainsItemsFromStore(id, ctx.storeId()));
+   if (!hasBranchAccess) {
     flash.addFlashAttribute("error", "Bạn chỉ được phép duyệt đơn hàng phát sinh tại chi nhánh của mình.");
     return "my-store".equalsIgnoreCase(source) ? "redirect:/admin/my-store#orders-section" : "redirect:/admin#orders-section";
    }

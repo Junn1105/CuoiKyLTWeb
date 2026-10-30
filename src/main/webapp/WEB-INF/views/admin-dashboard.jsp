@@ -119,7 +119,7 @@
     <option value="ALL" ${orderStatus == 'ALL' ? 'selected' : ''}>Tất cả trạng thái</option>
     <option value="PENDING" ${orderStatus == 'PENDING' ? 'selected' : ''}>Chờ xác nhận (PENDING)</option>
     <option value="CONFIRMED" ${orderStatus == 'CONFIRMED' ? 'selected' : ''}>Đã xác nhận (CONFIRMED)</option>
-    <option value="PROCESSING" ${orderStatus == 'PROCESSING' ? 'selected' : ''}>Đang đóng gói (PROCESSING)</option>
+    <option value="PROCESSING" ${orderStatus == 'PROCESSING' ? 'selected' : ''}>Đang chuẩn bị hàng (PROCESSING)</option>
     <option value="SHIPPED" ${orderStatus == 'SHIPPED' ? 'selected' : ''}>Đang giao SPX (SHIPPED)</option>
     <option value="COMPLETED" ${orderStatus == 'COMPLETED' ? 'selected' : ''}>Đã giao thành công (COMPLETED)</option>
     <option value="CANCELLED" ${orderStatus == 'CANCELLED' ? 'selected' : ''}>Đã hủy (CANCELLED)</option>
@@ -170,9 +170,9 @@
           <select name="status">
            <option value="PENDING" ${o.status == 'PENDING' ? 'selected' : ''}>Chờ xác nhận</option>
            <option value="CONFIRMED" ${o.status == 'CONFIRMED' ? 'selected' : ''}>Đã xác nhận</option>
-           <option value="PROCESSING" ${o.status == 'PROCESSING' ? 'selected' : ''}>Đang đóng gói</option>
+           <option value="PROCESSING" ${o.status == 'PROCESSING' ? 'selected' : ''}>Đang chuẩn bị hàng</option>
            <option value="SHIPPED" ${o.status == 'SHIPPED' ? 'selected' : ''}>Đang giao SPX</option>
-           <option value="COMPLETED" ${o.status == 'COMPLETED' ? 'selected' : ''}>Hoàn tất</option>
+           <option value="COMPLETED" ${o.status == 'COMPLETED' ? 'selected' : ''}>Đã giao thành công</option>
            <option value="CANCELLED" ${o.status == 'CANCELLED' ? 'selected' : ''}>Hủy đơn</option>
           </select>
           <button type="submit">Lưu</button>
@@ -180,6 +180,13 @@
         </td>
         <td>
          <a class="outline-button" href="${base}/orders/${o.orderId}/invoice" target="_blank" rel="noopener">🖨 In</a>
+         <c:if test="${o.status != 'COMPLETED' and o.status != 'CANCELLED'}">
+          <form method="post" action="${base}/admin/orders/${o.orderId}/status" style="display:inline-block; margin-left:4px;">
+           <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+           <input type="hidden" name="status" value="COMPLETED">
+           <button type="submit" class="outline-button" style="color:#15803d; border-color:#86efac; background:#f0fdf4;" title="Chuyển sang Đã giao thành công">✓ Đã giao</button>
+          </form>
+         </c:if>
         </td>
        </tr>
       </c:forEach>

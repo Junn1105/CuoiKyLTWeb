@@ -113,6 +113,10 @@ public class StoreAdminController {
   var ctx = storeService.getUserStoreContext(u.id);
   model.addAttribute("userContext", ctx);
 
+  if (!ctx.isAdmin() && !ctx.isManager()) {
+   return "redirect:/admin/my-store";
+  }
+
   // Tab routing based on role
   String activeTab = tab;
   if (activeTab.isEmpty()) {

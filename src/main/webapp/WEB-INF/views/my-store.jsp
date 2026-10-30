@@ -132,7 +132,7 @@
     <a href="${base}/admin/my-store?storeId=${store.storeId}&orderStatus=ALL#orders-section" class="filter-pill ${orderStatus == 'ALL' ? 'active' : ''}">Tất cả</a>
     <a href="${base}/admin/my-store?storeId=${store.storeId}&orderStatus=PENDING#orders-section" class="filter-pill ${orderStatus == 'PENDING' ? 'active' : ''}">Chờ duyệt</a>
     <a href="${base}/admin/my-store?storeId=${store.storeId}&orderStatus=CONFIRMED#orders-section" class="filter-pill ${orderStatus == 'CONFIRMED' ? 'active' : ''}">Đã xác nhận</a>
-    <a href="${base}/admin/my-store?storeId=${store.storeId}&orderStatus=PROCESSING#orders-section" class="filter-pill ${orderStatus == 'PROCESSING' ? 'active' : ''}">Đang soạn</a>
+    <a href="${base}/admin/my-store?storeId=${store.storeId}&orderStatus=PROCESSING#orders-section" class="filter-pill ${orderStatus == 'PROCESSING' ? 'active' : ''}">Đang chuẩn bị hàng</a>
     <a href="${base}/admin/my-store?storeId=${store.storeId}&orderStatus=SHIPPED#orders-section" class="filter-pill ${orderStatus == 'SHIPPED' ? 'active' : ''}">Đang giao</a>
     <a href="${base}/admin/my-store?storeId=${store.storeId}&orderStatus=COMPLETED#orders-section" class="filter-pill ${orderStatus == 'COMPLETED' ? 'active' : ''}">Hoàn tất</a>
    </div>
@@ -162,7 +162,10 @@
       <tbody>
        <c:forEach items="${storeOrders}" var="o">
         <tr>
-         <td><strong>#<c:out value="${o.id}"/></strong></td>
+         <td>
+          <strong><c:out value="${o.orderCode}"/></strong>
+          <br><small style="color:#64748b;">#<c:out value="${o.id}"/></small>
+         </td>
          <td>
           <div style="font-weight:600;"><c:out value="${o.fullName}"/></div>
           <small style="color:#64748b;"><c:out value="${o.phone}"/></small>
@@ -175,9 +178,9 @@
           <c:choose>
            <c:when test="${o.status == 'PENDING'}"><span class="status-badge pending">Chờ duyệt</span></c:when>
            <c:when test="${o.status == 'CONFIRMED'}"><span class="status-badge confirmed">Đã xác nhận</span></c:when>
-           <c:when test="${o.status == 'PROCESSING'}"><span class="status-badge processing">Đang soạn</span></c:when>
+           <c:when test="${o.status == 'PROCESSING'}"><span class="status-badge processing">Đang chuẩn bị hàng</span></c:when>
            <c:when test="${o.status == 'SHIPPED'}"><span class="status-badge shipped">Đang giao</span></c:when>
-           <c:when test="${o.status == 'COMPLETED'}"><span class="status-badge completed">Hoàn tất</span></c:when>
+           <c:when test="${o.status == 'COMPLETED'}"><span class="status-badge completed">Đã giao thành công</span></c:when>
            <c:otherwise><span class="status-badge cancelled"><c:out value="${o.status}"/></span></c:otherwise>
           </c:choose>
          </td>
@@ -190,7 +193,7 @@
             <option value="CONFIRMED" ${o.status == 'CONFIRMED' ? 'selected' : ''}>Duyệt đơn (Xác nhận)</option>
             <option value="PROCESSING" ${o.status == 'PROCESSING' ? 'selected' : ''}>Đang chuẩn bị hàng</option>
             <option value="SHIPPED" ${o.status == 'SHIPPED' ? 'selected' : ''}>Đã bàn giao vận chuyển</option>
-            <option value="COMPLETED" ${o.status == 'COMPLETED' ? 'selected' : ''}>Hoàn thành đơn</option>
+            <option value="COMPLETED" ${o.status == 'COMPLETED' ? 'selected' : ''}>Đã giao thành công</option>
             <option value="CANCELLED" ${o.status == 'CANCELLED' ? 'selected' : ''}>Hủy đơn</option>
            </select>
            <button type="submit" class="btn-sm btn-primary">Lưu</button>
